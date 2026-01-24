@@ -3,6 +3,10 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import authRoutes from "./src/routes/authRoutes.js";
+import profileRoutes from "./src/routes/profileRoutes.js";
+import mongoose from "mongoose";
+
+console.log("🔥🔥🔥 BACKEND STARTED FROM:", process.cwd());
 
 dotenv.config();
 console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
@@ -19,6 +23,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.get("/api/me", (req, res) => {
   const token = req.cookies.auth;
@@ -29,3 +34,7 @@ app.get("/api/me", (req, res) => {
 app.listen(5000, () => {
   console.log("Server running on port 5000");
 });
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
