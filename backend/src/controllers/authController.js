@@ -43,7 +43,7 @@ export const githubCallback = async (req, res) => {
         githubId: githubUser.id,
         username: githubUser.login.toLowerCase(),
         avatarUrl: githubUser.avatar_url,
-        bio: "",
+        bio: githubUser.bio || "",
         preferences: {},
         createdAt: new Date(),
         updatedAt: new Date()
@@ -110,6 +110,13 @@ export const getMe = (req, res) => {
 
 
 export const logout = (req, res) => {
-  res.clearCookie("auth", { path: "/" });
+    console.log("🧹 Clearing auth cookie");
+  res.clearCookie("auth", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+    path: "/"
+  });
+
   res.json({ message: "Logged out" });
 };

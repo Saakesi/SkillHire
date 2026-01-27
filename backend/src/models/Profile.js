@@ -6,6 +6,11 @@ const ProfileSchema = new mongoose.Schema({
   avatarUrl: { type: String },
   bio: { type: String, default: "" },
   preferences: { type: Object, default: {} }, // store any user settings
+  analysis: {
+    totalStars: Number,
+    repoCount: Number,
+    updatedAt: Date
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
