@@ -1,5 +1,5 @@
 import express from "express";
-import { githubLogin, githubCallback, getMe,logout } from "../controllers/authController.js";
+import { githubLogin, githubCallback, getMe, logout } from "../controllers/authController.js";
 
 const router = express.Router();
 

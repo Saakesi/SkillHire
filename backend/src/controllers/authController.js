@@ -34,6 +34,12 @@ export const githubCallback = async (req, res) => {
 
     const githubUser = userRes.data;
 
+    // console.log("GitHub user:", {
+    //   id: githubUser.id,
+    //   login: githubUser.login,
+    //   avatar: githubUser.avatar_url
+    // });
+
     // -------------------------
     // CREATE PROFILE IN MONGO
     // -------------------------
@@ -46,8 +52,15 @@ export const githubCallback = async (req, res) => {
         bio: githubUser.bio || "",
         preferences: {},
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        githubAccessToken: accessToken,
       });
+
+      // console.log("Profile saved:", {
+      //   id: profile._id,
+      //   githubId: profile.githubId,
+      //   username: profile.username
+      // });
     }
 
     // -------------------------
@@ -64,11 +77,6 @@ export const githubCallback = async (req, res) => {
     );
 
 
-    console.log("✅ SETTING COOKIE FROM GITHUB CALLBACK");
-console.log("JWT PAYLOAD:", {
-  githubId: githubUser.id,
-  username: githubUser.login
-});
     // -------------------------
     // SET COOKIE
     // -------------------------
@@ -110,7 +118,7 @@ export const getMe = (req, res) => {
 
 
 export const logout = (req, res) => {
-    console.log("🧹 Clearing auth cookie");
+  console.log("🧹 Clearing auth cookie");
   res.clearCookie("auth", {
     httpOnly: true,
     sameSite: "lax",

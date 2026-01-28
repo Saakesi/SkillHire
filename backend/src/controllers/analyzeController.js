@@ -15,7 +15,20 @@ export const analyzeProfile = async (req, res) => {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // ✅ create or reset analysis state
+  // get profile from github token
+  const profile = await Profile.findOne(
+    { githubId: user.githubId }
+  ).select("+githubAccessToken");
+
+  if (!profile) {
+    return res.status(404).json({ error: "Profile not found" });
+  }
+
+  if (!profile.githubAccessToken) {
+    return res.status(400).json({ error: "GitHub token missing" });
+  }
+
+  // create or reset analysis state
   await Analysis.findOneAndUpdate(
     { githubId: user.githubId },
     {
@@ -26,12 +39,15 @@ export const analyzeProfile = async (req, res) => {
     },
     { upsert: true, new: true }
   );
+  
+  
 
   const job = await analyzeProfileQueue.add(
     "analyze",
     {
       githubId: user.githubId,
-      githubUsername: user.username
+      githubUsername: profile.username,
+      githubToken: profile.githubAccessToken
     },
     {
       attempts: 3,

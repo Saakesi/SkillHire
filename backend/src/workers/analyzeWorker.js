@@ -2,8 +2,18 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import axios from "axios";
 import Analysis from "../models/Analysis.js";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const connection = new IORedis();
+dotenv.config();
+
+await mongoose.connect(process.env.MONGO_URI);
+console.log("🟢 Worker MongoDB connected");
+
+const connection = new IORedis({
+  maxRetriesPerRequest: null
+});
+
 
 const worker = new Worker(
   "analyzeProfile",
