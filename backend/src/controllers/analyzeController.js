@@ -1,8 +1,9 @@
-import { analyzeProfileQueue } from "../jobs/analyzeProfileJob.js";
+
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 
 import Analysis from "../models/Analysis.js";
+import { fetchReposQueue } from "../jobs/fetchReposJob.js";
 
 export const analyzeProfile = async (req, res) => {
   const token = req.cookies.auth;
@@ -15,51 +16,27 @@ export const analyzeProfile = async (req, res) => {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // get profile from github token
-  const profile = await Profile.findOne(
-    { githubId: user.githubId }
-  ).select("+githubAccessToken");
-
-  if (!profile) {
-    return res.status(404).json({ error: "Profile not found" });
+  const profile = await Profile.findOne({ githubId: user.githubId }).select("+githubAccessToken");
+  if (!profile || !profile.githubAccessToken) {
+    return res.status(400).json({ error: "GitHub not connected" });
   }
 
-  if (!profile.githubAccessToken) {
-    return res.status(400).json({ error: "GitHub token missing" });
-  }
-
-  // create or reset analysis state
   await Analysis.findOneAndUpdate(
     { githubId: user.githubId },
-    {
-      githubId: user.githubId,
-      status: "queued",
-      result: null,
-      updatedAt: new Date()
-    },
-    { upsert: true, new: true }
-  );
-  
-  
-
-  const job = await analyzeProfileQueue.add(
-    "analyze",
-    {
-      githubId: user.githubId,
-      githubUsername: profile.username,
-      githubToken: profile.githubAccessToken
-    },
-    {
-      attempts: 3,
-      backoff: { type: "exponential", delay: 5000 }
-    }
+    { status: "queued", result: null, updatedAt: new Date() },
+    { upsert: true }
   );
 
-  res.json({
-    message: "Analysis queued",
-    jobId: job.id
+  await fetchReposQueue.add("fetch-repos", {
+    githubId: user.githubId,
+    accessToken: profile.githubAccessToken
   });
+
+  res.json({ message: "Profile analysis started" });
 };
+
+
+
 
 export const getAnalyzeStatus = async (req, res) => {
   try {

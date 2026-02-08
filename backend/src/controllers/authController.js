@@ -12,6 +12,7 @@ export const githubLogin = (req, res) => {
 
 export const githubCallback = async (req, res) => {
   const { code } = req.query;
+  if (!code) return res.status(400).json({ error: "Missing code" });
 
   try {
     // Exchange code for access token
@@ -20,83 +21,59 @@ export const githubCallback = async (req, res) => {
       {
         client_id: process.env.GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
-        code
+        code,
       },
       { headers: { Accept: "application/json" } }
     );
 
     const accessToken = tokenRes.data.access_token;
+    if (!accessToken) throw new Error("GitHub access token not received");
 
-    // Fetch GitHub user
+    // Fetch user profile from GitHub
     const userRes = await axios.get("https://api.github.com/user", {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const githubUser = userRes.data;
 
-    // console.log("GitHub user:", {
-    //   id: githubUser.id,
-    //   login: githubUser.login,
-    //   avatar: githubUser.avatar_url
-    // });
-
-    // -------------------------
-    // CREATE PROFILE IN MONGO
-    // -------------------------
-    let profile = await Profile.findOne({ githubId: githubUser.id });
-    if (!profile) {
-      profile = await Profile.create({
+    // Save/update user profile
+    await Profile.findOneAndUpdate(
+      { githubId: githubUser.id },
+      {
         githubId: githubUser.id,
         username: githubUser.login.toLowerCase(),
         avatarUrl: githubUser.avatar_url,
         bio: githubUser.bio || "",
-        preferences: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
         githubAccessToken: accessToken,
-      });
-
-      // console.log("Profile saved:", {
-      //   id: profile._id,
-      //   githubId: profile.githubId,
-      //   username: profile.username
-      // });
-    }
-
-    // -------------------------
-    // CREATE JWT WITH githubId
-    // -------------------------
-    const jwtToken = jwt.sign(
-      {
-        githubId: githubUser.id,   // unique GitHub ID
-        username: githubUser.login,
-        role: "candidate"          // optional: add role
+        updatedAt: new Date(),
       },
+      { upsert: true, new: true }
+    );
+
+    // Issue JWT
+    const jwtToken = jwt.sign(
+      { githubId: githubUser.id, username: githubUser.login, role: "candidate" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-
-    // -------------------------
-    // SET COOKIE
-    // -------------------------
     res.clearCookie("auth", { path: "/" });
-
     res.cookie("auth", jwtToken, {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
-      path: "/",   // set true in production with HTTPS
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Redirect to frontend dashboard
-    res.redirect("http://localhost:5173/dashboard");
+    res.redirect(process.env.FRONTEND_URL || "http://localhost:5173/dashboard");
   } catch (err) {
     console.error("Error in GitHub OAuth callback:", err);
     res.status(500).json({ error: "OAuth failed" });
   }
 };
+
+
 
 
 

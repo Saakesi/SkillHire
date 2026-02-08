@@ -1,5 +1,17 @@
+
 import mongoose from "mongoose";
 
+const ProfileSchema = new mongoose.Schema({
+  githubId: Number,
+  username: String,
+  githubAccessToken: {
+    type: String,
+    select: false
+  },
+  repos: Array
+});
+
+/*
 const ProfileSchema = new mongoose.Schema({
   githubId: { type: Number, required: true, unique: true },
   username: { type: String, required: true, unique: true, sparse: true },
@@ -21,5 +33,5 @@ const ProfileSchema = new mongoose.Schema({
 
 // Index username for fast lookup (good for 1M+ users)
 //ProfileSchema.index({ username: 1 });
-
+*/
 export default mongoose.model("Profile", ProfileSchema);

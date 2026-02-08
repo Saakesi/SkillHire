@@ -9,7 +9,8 @@ const analysisSchema = new mongoose.Schema({
     default: "queued"
   },
   result: { type: Object },
-  error: { type: String }
+  error: { type: String },
+  updatedAt:{Date} 
 }, { timestamps: true });
 
 export default mongoose.model("Analysis", analysisSchema);

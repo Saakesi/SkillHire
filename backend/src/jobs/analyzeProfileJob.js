@@ -3,4 +3,4 @@ import IORedis from "ioredis";
 
 const connection = new IORedis();
 
-export const analyzeProfileQueue = new Queue("analyzeProfile", { connection });
+export const analyzeProfileQueue = new Queue("analyze-profile", { connection });

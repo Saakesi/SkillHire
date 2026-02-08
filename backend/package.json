@@ -14,7 +14,8 @@
   "start": "node index.js",
   
     
-  "dev": "nodemon index.js"
+  "dev": "nodemon index.js",
+  "workers": "node src/workers/index.js"
   
   },
   

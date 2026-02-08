@@ -1,33 +1,54 @@
-import { createWorker } from "../redisClient.js";
+import { Worker } from "bullmq";
 import axios from "axios";
 import Profile from "../models/Profile.js";
+import { connection } from "../redisClient.js";
+import { analyzeProfileQueue } from "../jobs/analyzeProfileJob.js";
 
-const processor = async (job) => {
-  const { githubId, accessToken } = job.data;
+export const fetchReposWorker = new Worker(
+  "fetch-repos",
+  async (job) => {
+    const { githubId, accessToken } = job.data;
+    if (!accessToken) throw new Error("Missing GitHub token");
 
-  try {
-    // Fetch all repos
-    const res = await axios.get("https://api.github.com/user/repos", {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+    let page = 1;
+    let allRepos = [];
 
-    const repos = res.data.map((r) => ({
+    while (true) {
+      const res = await axios.get("https://api.github.com/user/repos", {
+        params: { per_page: 100, page },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github+json",
+          "User-Agent": "SkillHire-Backend"
+        }
+      });
+
+      if (res.data.length === 0) break;
+
+      allRepos.push(...res.data);
+      page++;
+      await new Promise(r => setTimeout(r, 300)); // rate-limit safety
+    }
+
+    const repos = allRepos.map(r => ({
       name: r.name,
       private: r.private,
-      html_url: r.html_url
+      language: r.language,
+      stars: r.stargazers_count,
+      fork: r.fork,
+      updatedAt: r.updated_at
     }));
 
-    // Save repos in profile (can be stored as array or in separate collection)
     await Profile.findOneAndUpdate(
       { githubId },
       { $set: { repos } },
-      { new: true }
+      { upsert: true }
     );
 
-    console.log(`Fetched repos for user ${githubId}`);
-  } catch (err) {
-    console.error("Error fetching repos for user:", githubId, err);
-  }
-};
+    // 🔥 Chain next step
+    await analyzeProfileQueue.add("analyze", { githubId });
 
-export const fetchReposWorker = createWorker("fetch-repos", processor);
+    console.log(`✅ Repos fetched for ${githubId}`);
+  },
+  { connection }
+);
