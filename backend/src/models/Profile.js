@@ -8,6 +8,10 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     select: false
   },
+  sonar: {
+  type: Object,
+  default: null
+},
   repos: Array
 });
 

@@ -32,6 +32,7 @@ if (profile?.repos?.length > 0) {
     if (!Array.isArray(profile.repos) || profile.repos.length === 0) {
       throw new Error("Repos not ready for analysis");
     }
+    
     console.log(JSON.stringify(profile.repos[0], null, 2));
 
     //const skills = extractSkills(profile.repos);
