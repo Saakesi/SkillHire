@@ -52,7 +52,7 @@ export const Hero = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
         >
-          GitHire analyzes GitHub profiles to surface the best developers.
+          SkillHire analyzes GitHub profiles to surface the best developers.
           Search by skills, stars, and activity. No more guessing.
         </motion.p>
 

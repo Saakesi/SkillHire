@@ -35,7 +35,7 @@ export const Footer = () => {
               <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
                 <Github className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-text">GitHire</span>
+              <span className="text-xl font-bold gradient-text">SkillHire</span>
             </Link>
             <p className="text-muted-foreground text-sm mb-6 max-w-xs">
               The hiring platform that evaluates developers based on real code, not just resumes.
@@ -90,7 +90,7 @@ export const Footer = () => {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} GitHire. All rights reserved.
+            © {currentYear} SkillHire. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground flex items-center gap-1">
             Made with <Heart className="w-4 h-4 text-red-500" /> for developers
