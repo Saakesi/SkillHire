@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const me = await authService.getCurrentUser();
-      console.log("/auth/me response:", me);
+      // console.log("/auth/me response:", me);
       setUser(me);
       setLoading(false);
     };
