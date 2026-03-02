@@ -5,7 +5,7 @@ import Profile from "../models/Profile.js"; // your Mongoose model
 
 export const githubLogin = (req, res) => {
   // Added 'read:repo' to scope to access private repos (read-only)
-  const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=user,read:repo`;
+  const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=repo read:user`;
   res.redirect(url);
 };
 

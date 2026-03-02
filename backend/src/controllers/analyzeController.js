@@ -82,7 +82,7 @@ export const getAnalyzeStatus = async (req, res) => {
 
     return res.json({
       status: analysis.status,   // queued | processing | completed | failed
-      result: analysis.result,
+      rawMetrics: analysis.rawMetrics,
       updatedAt: analysis.updatedAt
     });
 
