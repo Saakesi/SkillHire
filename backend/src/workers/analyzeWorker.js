@@ -110,13 +110,95 @@ const worker = new Worker(
       }
 
 
+      //Developer type(backend/frontend/full-stack) classification
+      const frontendLanguages = [
+        "HTML",
+        "CSS",
+        "SCSS",
+        "Sass"
+      ];
+
+      const backendLanguages = [
+        "Python",
+        "Java",
+        "Go",
+        "Rust",
+        "C#",
+        "PHP",
+        "Ruby",
+        "Kotlin",
+        "Scala"
+      ];
+
+      let frontendWeight = 0;
+      let backendWeight = 0;
+
+      for (const [lang, percent] of Object.entries(languagePercentages)) {
+        if (frontendLanguages.includes(lang)) {
+          frontendWeight += percent;
+        }
+
+        if (backendLanguages.includes(lang)) {
+          backendWeight += percent;
+        }
+
+        // JavaScript / TypeScript logic
+        if (lang === "JavaScript" || lang === "TypeScript") {
+          // if HTML/CSS present → frontend leaning
+          if (
+            languagePercentages["HTML"] ||
+            languagePercentages["CSS"]
+          ) {
+            frontendWeight += percent;
+          } else {
+            backendWeight += percent;
+          }
+        }
+      }
+
+      let developerType = "Unknown";
+
+      if (frontendWeight > backendWeight + 10) {
+        developerType = "Frontend";
+      } else if (backendWeight > frontendWeight + 10) {
+        developerType = "Backend";
+      } else if (frontendWeight > 0 && backendWeight > 0) {
+        developerType = "Full Stack";
+      }
+
+
+      //tech stacks classification
+      const techStack = [];
+      if (languagePercentages["JavaScript"] || languagePercentages["TypeScript"]) {
+        techStack.push("JavaScript Ecosystem");
+      }
+
+      if (languagePercentages["Python"]) {
+        techStack.push("Python Ecosystem");
+      }
+
+      if (languagePercentages["Go"]) {
+        techStack.push("Go Ecosystem");
+      }
+
+      if (languagePercentages["Java"]) {
+        techStack.push("JVM Ecosystem");
+      }
+
+      if (languagePercentages["Rust"]) {
+        techStack.push("Systems Programming");
+      }
+
+
       const rawMetrics = {
         repoCount,
         totalStars,
         totalForks,
         languagePercentages,
         primaryLanguage,
-        languageEntropy
+        languageEntropy,
+        developerType,
+        techStack
       };
 
       // save final result

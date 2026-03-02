@@ -23,7 +23,11 @@ const rawMetricsSchema = new mongoose.Schema({
   languageEntropy: {
     type: Number,
     default: 0
-  }
+  },
+
+  developerType: { type: String },
+  techStack: [String]
+
 }, { _id: false });
 
 const analysisSchema = new mongoose.Schema({
