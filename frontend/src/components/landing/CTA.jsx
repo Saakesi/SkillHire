@@ -25,7 +25,7 @@ export const CTA = () => {
             Ready to find your next hire?
           </h2>
           <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-            Join thousands of companies using GitHire to find and hire the best developers.
+            Join thousands of companies using SkillHire to find and hire the best developers.
             Get started for free.
           </p>
 

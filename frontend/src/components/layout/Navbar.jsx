@@ -14,41 +14,44 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../ui/Button';
 import { Avatar } from '../ui/Avatar';
+import { useAuth } from '../../context/AuthContext';
 
 export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // MOCK DATA (for now)
-  const isAuthenticated = false;
-  const user = {
-    name: 'Harsh Singhal',
-    username: 'harshsinghal',
-    avatar: null,
-    role: 'developer', // or 'recruiter'
-  };
-
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navLinks = isAuthenticated
-    ? user.role === 'recruiter'
-      ? [
-        { href: '/recruiter', label: 'Search' },
-        { href: '/shortlist', label: 'Shortlist' },
-      ]
-      : [
-        { href: '/dashboard', label: 'Dashboard' },
-        { href: `/profile/${user.username}`, label: 'My Profile' },
-      ]
-    : [
-      { href: '/#features', label: 'Features' },
-      { href: '/recruiters', label: 'For Recruiters' },
-    ];
+  // 🔥 REAL AUTH DATA
+  const {
+    isAuthenticated,
+    user,
+    profile,
+    role,
+    logout,
+  } = useAuth();
 
-  const handleLogout = () => {
+  // 🔗 Dynamic nav links
+  const navLinks = isAuthenticated
+    ? role === 'recruiter'
+      ? [
+          { href: '/recruiter', label: 'Search' },
+          { href: '/shortlist', label: 'Shortlist' },
+        ]
+      : [
+          { href: '/dashboard', label: 'Dashboard' },
+          { href: `/profile/${profile?.username}`, label: 'My Profile' },
+        ]
+    : [
+        { href: '/#features', label: 'Features' },
+        { href: '/recruiters', label: 'For Recruiters' },
+      ];
+
+  const handleLogout = async () => {
     setUserMenuOpen(false);
+    await logout();
     navigate('/');
   };
 
@@ -61,7 +64,7 @@ export const Navbar = () => {
             <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
               <Github className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold gradient-text">GitHire</span>
+            <span className="text-xl font-bold gradient-text">SkillHire</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -70,10 +73,11 @@ export const Navbar = () => {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`text-sm font-medium transition-colors ${location.pathname === link.href
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === link.href
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                }`}
               >
                 {link.label}
               </Link>
@@ -101,7 +105,11 @@ export const Navbar = () => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-accent transition-colors"
                 >
-                  <Avatar src={user.avatar} name={user.name} size="sm" />
+                  <Avatar
+                    src={profile?.avatarUrl}
+                    name={profile?.username}
+                    size="sm"
+                  />
                 </button>
 
                 <AnimatePresence>
@@ -114,10 +122,10 @@ export const Navbar = () => {
                     >
                       <div className="px-4 py-3 border-b border-border">
                         <p className="font-semibold text-foreground">
-                          {user.name}
+                          {profile?.username}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          @{user.username}
+                          @{profile?.username}
                         </p>
                       </div>
 
@@ -158,7 +166,11 @@ export const Navbar = () => {
                   </Button>
                 </Link>
                 <Link to="/login">
-                  <Button variant="gradient" size="sm" icon={<Github className="w-4 h-4" />}>
+                  <Button
+                    variant="gradient"
+                    size="sm"
+                    icon={<Github className="w-4 h-4" />}
+                  >
                     Get Started
                   </Button>
                 </Link>

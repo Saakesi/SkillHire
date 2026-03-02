@@ -3,32 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Github, ArrowLeft, Code2, Star, GitFork } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const { loginWithGitHub } = useAuth();
 
   // 🔥 MOCK LOGIN HANDLER
   const handleGitHubLogin = () => {
     setLoading(true);
-    setError(null);
-
-    setTimeout(() => {
-      const mockUser = {
-        name: 'Harsh Singhal',
-        username: 'harshsinghal',
-        role: 'developer', // change to 'recruiter/' to test
-      };
-
-      if (mockUser.role === 'recruiter') {
-        navigate('/recruiter');
-      } else {
-        navigate('/dashboard');
-      }
-
-      setLoading(false);
-    }, 1200);
+    loginWithGitHub();
   };
 
   return (
@@ -62,11 +46,7 @@ export const LoginPage = () => {
               Sign in with your GitHub account to access your profile and get discovered by top recruiters.
             </p>
 
-            {error && (
-              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                {error}
-              </div>
-            )}
+
 
             <Button
               variant="github"

@@ -26,6 +26,7 @@ export const githubCallback = async (req, res) => {
     );
 
     const accessToken = tokenRes.data.access_token;
+    if (!accessToken) throw new Error("GitHub token not received");
 
     // Fetch GitHub user
     const userRes = await axios.get("https://api.github.com/user", {
@@ -62,6 +63,13 @@ export const githubCallback = async (req, res) => {
       //   username: profile.username
       // });
     }
+    else {
+      // update avatar & token in case they changed
+      profile.avatarUrl = githubUser.avatar_url;
+      profile.githubAccessToken = accessToken;
+      profile.updatedAt = new Date();
+      await profile.save();
+    }
 
     // -------------------------
     // CREATE JWT WITH githubId
@@ -70,7 +78,7 @@ export const githubCallback = async (req, res) => {
       {
         githubId: githubUser.id,   // unique GitHub ID
         username: githubUser.login,
-        role: "candidate"          // optional: add role
+        role: "developer"          // optional: add role
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
@@ -100,25 +108,38 @@ export const githubCallback = async (req, res) => {
 
 
 
-export const getMe = (req, res) => {
+export const getMe = async (req, res) => {
   try {
-    const token = req.cookies.auth; // read JWT from cookie
+    const token = req.cookies.auth;
+    if (!token) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
 
-    if (!token) return res.status(401).json({ error: "Not logged in" });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = jwt.verify(token, process.env.JWT_SECRET);
+    const profile = await Profile.findOne({ githubId: decoded.githubId })
+      .select("-githubAccessToken");
 
-    // return user info
-    res.json({ githubId: user.githubId, username: user.username });
+    if (!profile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    res.json({
+      githubId: decoded.githubId,
+      username: decoded.username,
+      role: decoded.role,
+      profile, // includes avatarUrl
+    });
 
   } catch (err) {
+    console.error("getMe error:", err);
     res.status(401).json({ error: "Invalid token" });
   }
 };
 
 
 export const logout = (req, res) => {
-  console.log("🧹 Clearing auth cookie");
+  console.log("Clearing auth cookie");
   res.clearCookie("auth", {
     httpOnly: true,
     sameSite: "lax",
@@ -126,5 +147,5 @@ export const logout = (req, res) => {
     path: "/"
   });
 
-  res.json({ message: "Logged out" });
+  res.json({ message: "Logged out successfully" });
 };
