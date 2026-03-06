@@ -30,6 +30,52 @@ const rawMetricsSchema = new mongoose.Schema({
   frameworks: {
     type: [String],
     default: []
+  },
+
+  // ===== Activity metrics =====
+  commitCount6Months: {
+    type: Number,
+    default: 0
+  },
+
+  activeWeeks: {
+    type: Number,
+    default: 0
+  },
+
+  longestStreak: {
+    type: Number,
+    default: 0
+  },
+
+  // ===== Collaboration metrics =====
+  prCount: {
+    type: Number,
+    default: 0
+  },
+
+  mergedPRCount: {
+    type: Number,
+    default: 0
+  },
+
+  externalPRs: {
+    type: Number,
+    default: 0
+  },
+
+  issueCount: {
+    type: Number,
+    default: 0
+  },
+
+  // ===== Project Quality =====
+  qualityIndicators: {
+    readme: { type: Number, default: 0 },
+    ci: { type: Number, default: 0 },
+    tests: { type: Number, default: 0 },
+    docker: { type: Number, default: 0 },
+    license: { type: Number, default: 0 }
   }
 
 }, { _id: false });
