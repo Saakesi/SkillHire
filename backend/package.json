@@ -9,6 +9,8 @@
     "worker": "node src/workers/analyzeWorker.js"
   },
   "dependencies": {
+    "@octokit/plugin-throttling": "^11.0.3",
+    "@octokit/rest": "^22.0.1",
     "axios": "^1.13.2",
     "bullmq": "^5.67.0",
     "cookie-parser": "^1.4.7",
@@ -18,6 +20,7 @@
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
+    "p-map": "^7.0.4",
     "redis": "^5.10.0"
   },
   "devDependencies": {

@@ -2,17 +2,7 @@
 
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
-import { createClient } from "redis";
-
-// ---------------------
-// Setup Redis client
-// ---------------------
-const redisClient = createClient({
-  url: "redis://127.0.0.1:6379" // default local Redis
-});
-
-redisClient.on("error", (err) => console.error("Redis Client Error", err));
-await redisClient.connect(); // must await in top-level for ES modules
+import { connection as redis } from "../redisClient.js";
 
 // Helper: get user from JWT cookie
 const getUserFromCookie = (req) => {
@@ -31,20 +21,15 @@ const getUserFromCookie = (req) => {
 export const getMyProfile = async (req, res) => {
   try {
     const user = getUserFromCookie(req);
-    console.log("Cookie JWT decoded user:", user); // log the decoded JWT
+    // console.log("Cookie JWT decoded user:", user); // log the decoded JWT
 
     if (!user) {
       console.log("No user found in cookie");
       return res.status(401).json({ error: "Not logged in" });
     }
 
-    // log type of githubId
-    console.log("Type of githubId from JWT:", typeof user.githubId);
-    console.log("Github ID from JWT:", user.githubId);
-
     // fetch profile
     const profile = await Profile.findOne({ githubId: user.githubId });
-    console.log("Profile fetched from MongoDB:", profile);
 
     if (!profile) {
       console.log("Profile not found for this GitHub ID");
@@ -62,14 +47,21 @@ export const getMyProfile = async (req, res) => {
 // GET /api/profile/:username
 // ---------------------
 export const getPublicProfile = async (req, res) => {
-  const usernameParam = req.params.username;
+  const username = req.params.username.toLowerCase();
+  const cacheKey = `profile:${username}`;
 
   try {
-    console.log("Requested username:", usernameParam);
+    //check in redis cache
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      console.log("⚡Redis cache hit");
+      return res.json(JSON.parse(cached));
+    }
 
     // Case-insensitive search
-    const profile = await Profile.findOne({ 
-      username: { $regex: `^${usernameParam}$`, $options: "i" } 
+    const profile = await Profile.findOne({
+      username: { $regex: `^${username}$`, $options: "i" }
     });
 
     if (!profile) {
@@ -82,6 +74,9 @@ export const getPublicProfile = async (req, res) => {
       avatarUrl: profile.avatarUrl,
       bio: profile.bio
     };
+
+    //Store in Redis for 10 minutes
+    await redis.set(cacheKey, JSON.stringify(publicData), "EX", 600);
 
     res.json(publicData);
   } catch (err) {

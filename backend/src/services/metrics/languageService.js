@@ -1,31 +1,42 @@
 import axios from "axios";
+import pMap from "p-map";
 
 export const computeLanguageMetrics = async (repos, githubToken) => {
   const languageBytes = {};
-  for (const repo of repos) {
-    console.log(repo.name);
-    try {
-      const response = await axios.get(repo.languages_url, {
-        headers: { Authorization: `Bearer ${githubToken}` }
-      });
 
-      const languages = response.data;
+  const results = await pMap(
+    repos,
+    async (repo) => {
+      try {
+        const response = await axios.get(repo.languages_url, {
+          headers: { Authorization: `Bearer ${githubToken}` }
+        });
 
-      for (const [lang, bytes] of Object.entries(languages)) {
-        languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
+        return response.data;
+      } catch {
+        console.log(`Skipping language fetch for ${repo.name}`);
+        return null;
       }
-    } catch {
-      console.log(`Skipping language fetch for ${repo.name}`);
+    },
+    { concurrency: 5 } // prevents rate limit bursts
+  );
+
+  for (const languages of results) {
+    if (!languages) continue;
+
+    for (const [lang, bytes] of Object.entries(languages)) {
+      languageBytes[lang] = (languageBytes[lang] || 0) + bytes;
     }
   }
 
-  // If user has no languages
   if (Object.keys(languageBytes).length === 0) {
     console.log("No language data found.");
   }
 
-  const totalBytes = Object.values(languageBytes)
-    .reduce((sum, val) => sum + val, 0);
+  const totalBytes = Object.values(languageBytes).reduce(
+    (sum, val) => sum + val,
+    0
+  );
 
   const languagePercentages = {};
   let primaryLanguage = null;
@@ -33,7 +44,7 @@ export const computeLanguageMetrics = async (repos, githubToken) => {
 
   if (totalBytes > 0) {
     for (const [lang, bytes] of Object.entries(languageBytes)) {
-      const percent = (bytes / totalBytes);
+      const percent = bytes / totalBytes;
       languagePercentages[lang] = percent;
 
       if (bytes > maxBytes) {
@@ -47,14 +58,12 @@ export const computeLanguageMetrics = async (repos, githubToken) => {
 
   for (const bytes of Object.values(languageBytes)) {
     const p = bytes / totalBytes;
-    if (p > 0) {
-      languageEntropy -= p * Math.log2(p);
-    }
+    if (p > 0) languageEntropy -= p * Math.log2(p);
   }
 
   return {
     languagePercentages,
     primaryLanguage,
-    languageEntropy,
+    languageEntropy
   };
 };

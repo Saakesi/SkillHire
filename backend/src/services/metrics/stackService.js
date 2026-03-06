@@ -31,7 +31,7 @@ export const getStack = (languagePercentages) => {
     }
   }
 
-  console.log("frontend: ", frontendWeight, " backend: ", backendWeight);
+  // console.log("frontend: ", frontendWeight, " backend: ", backendWeight);
 
   let developerType = "Unknown";
 
