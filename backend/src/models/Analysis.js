@@ -26,7 +26,11 @@ const rawMetricsSchema = new mongoose.Schema({
   },
 
   developerType: { type: String },
-  techStack: [String]
+  techStack: [String],
+  frameworks: {
+    type: [String],
+    default: []
+  }
 
 }, { _id: false });
 

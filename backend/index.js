@@ -7,7 +7,7 @@ import profileRoutes from "./src/routes/profileRoutes.js";
 import mongoose from "mongoose";
 import analyzeRoutes from "./src/routes/analyzeRoutes.js";
 
-console.log("🔥🔥🔥 BACKEND STARTED FROM:", process.cwd());
+console.log("BACKEND STARTED FROM:", process.cwd());
 
 dotenv.config();
 console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
@@ -26,6 +26,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/analyze", analyzeRoutes);
+
+app.get('/', (req, res)=>{
+  res.send("Backend is Working!");
+})
+
 
 app.get("/api/me", (req, res) => {
   const token = req.cookies.auth;
