@@ -1,12 +1,13 @@
 import { Router } from "express";
-import * as skillsCtrl from "../controllers/skillsController.js";
+import {getSkills,updateSkill,fetchGithubMetrics} from "../controllers/skillController.js";
 
 const router = Router();
 
 // get skills of a username
-router.get("/:username", skillsCtrl.getSkills);
+router.get("/:username", getSkills);
 
 // update skill for logged in user
-router.put("/update", skillsCtrl.updateSkill);
+router.put("/update", updateSkill);
+router.post("/metrics", fetchGithubMetrics);
 
 export default router;
