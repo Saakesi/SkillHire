@@ -3,6 +3,7 @@
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 import { connection as redis } from "../redisClient.js";
+import crypto from "crypto";
 
 // Helper: get user from JWT cookie
 const getUserFromCookie = (req) => {
@@ -93,7 +94,7 @@ export const updateProfile = async (req, res) => {
   const user = getUserFromCookie(req);
   if (!user) return res.status(401).json({ error: "Not logged in" });
 
-  const { bio, preferences, avatarUrl } = req.body;
+  const { bio, preferences, avatarUrl, leetcodeUsername } = req.body;
 
   try {
     const profile = await Profile.findOneAndUpdate(
@@ -102,6 +103,7 @@ export const updateProfile = async (req, res) => {
         bio,
         preferences,
         avatarUrl,
+        leetcodeUsername,
         updatedAt: new Date()
       },
       { new: true, upsert: true } // create if doesn't exist
@@ -118,4 +120,3 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
-

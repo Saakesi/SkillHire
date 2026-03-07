@@ -42,6 +42,9 @@ export const DeveloperDashboard = () => {
     const [editingBio, setEditingBio] = useState(false);
     const [bio, setBio] = useState(profile.bio || "");
     const [savingBio, setSavingBio] = useState(false);
+    const [editingLeetcode, setEditingLeetcode] = useState(false);
+    const [leetcodeUsername, setLeetcodeUsername] = useState(profile.leetcodeUsername || "");
+    const [savingLeetcode, setSavingLeetcode] = useState(false);
 
     if (!profile) return <PageLoader />;
 
@@ -89,6 +92,25 @@ export const DeveloperDashboard = () => {
             setSavingBio(false);
         }
 
+    };
+
+    const saveLeetcodeUsername = async () => {
+        try {
+            setSavingLeetcode(true);
+
+            await axios.put(
+                `${API}/api/profile/update`,
+                { leetcodeUsername },
+                { withCredentials: true }
+            );
+
+            setEditingLeetcode(false);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingLeetcode(false);
+        }
     };
 
     // ---------------- ANALYZE BUTTON ----------------
@@ -275,6 +297,64 @@ export const DeveloperDashboard = () => {
                                                         onClick={() => {
                                                             setEditingBio(false);
                                                             setBio(profile.bio || "");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+
+                                                </div>
+
+                                            </div>
+
+                                        )}
+
+                                    </div>
+                                    {/* LEETCODE USERNAME */}
+
+                                    <div className="flex items-center gap-2 mt-2">
+
+                                        {!editingLeetcode ? (
+
+                                            <>
+                                                <p className="text-sm text-muted-foreground">
+                                                    LeetCode: {leetcodeUsername || "Not connected"}
+                                                </p>
+
+                                                <button
+                                                    onClick={() => setEditingLeetcode(true)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                            </>
+
+                                        ) : (
+
+                                            <div className="flex flex-col gap-2">
+
+                                                <input
+                                                    value={leetcodeUsername}
+                                                    onChange={(e) => setLeetcodeUsername(e.target.value)}
+                                                    placeholder="Enter LeetCode username"
+                                                    className="border rounded-md px-2 py-1 text-sm bg-background"
+                                                />
+
+                                                <div className="flex gap-2">
+
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={saveLeetcodeUsername}
+                                                        disabled={savingLeetcode}
+                                                    >
+                                                        {savingLeetcode ? "Saving..." : "Save"}
+                                                    </Button>
+
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setEditingLeetcode(false);
+                                                            setLeetcodeUsername(profile.leetcodeUsername || "");
                                                         }}
                                                     >
                                                         Cancel

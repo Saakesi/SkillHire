@@ -89,6 +89,50 @@ const rawMetricsSchema = new mongoose.Schema({
 
 }, { _id: false });
 
+const leetcodeSchema = new mongoose.Schema({
+
+  username: String,
+  solved: {
+    total: Number,
+    easy: Number,
+    medium: Number,
+    hard: Number
+  },
+  ranking: Number,
+  reputation: Number,
+  contest: {
+    rating: Number,
+    globalRank: Number,
+    contestsAttended: Number
+  },
+  languages: [
+    {
+      languageName: String,
+      problemsSolved: Number
+    }
+  ],
+  algorithms: {
+    advanced: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ],
+    intermediate: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ],
+    fundamental: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ]
+  }
+}, { _id: false });
+
 const analysisSchema = new mongoose.Schema({
   githubId: { type: Number, required: true, index: true },
   status: {
@@ -107,6 +151,7 @@ const analysisSchema = new mongoose.Schema({
     default: [],
     index: true
   },
+  leetcodeMetrics: leetcodeSchema,
   error: { type: String, default: null }
 }, { timestamps: true });
 
