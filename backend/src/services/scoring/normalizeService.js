@@ -3,12 +3,17 @@ function scale(value, max) {
 }
 
 export function normalizeMetrics(raw) {
+  const q = raw.qualityIndicators || {};
+  console.log("QUALITY INDICATORS RECEIVED:", raw.qualityIndicators);
+
   const qualityScore =
-    raw.qualityIndicators.readme * 5 +
-    raw.qualityIndicators.ci * 20 +
-    raw.qualityIndicators.tests * 20 +
-    raw.qualityIndicators.docker * 20 +
-    raw.qualityIndicators.license * 15;
+    (q.readme || 0) * 5 +
+    (q.ci || 0) * 20 +
+    (q.tests || 0) * 20 +
+    (q.docker || 0) * 20 +
+    (q.license || 0) * 15;
+
+    console.log("QUALITY SCORE:", qualityScore);
 
   return {
     repoScore: scale(raw.repoCount, 30),

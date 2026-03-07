@@ -142,22 +142,18 @@ const analysisSchema = new mongoose.Schema({
   },
   rawMetrics: rawMetricsSchema,
   overallScore: {
-  type: Number,
-  default: null,
-  index: true
-},
-
-scoreBreakdown: {
-  normalizedScores: { type: Object },
-  weightedScore: Number,
-  penalty: Number,
-  trustScore: Number,
-  confidenceScore: Number,
-  finalScore: Number
-},
     type: Number,
     default: null,
     index: true
+  },
+
+  scoreBreakdown: {
+    normalizedScores: { type: Object },
+    weightedScore: Number,
+    penalty: Number,
+    trustScore: Number,
+    confidenceScore: Number,
+    finalScore: Number
   },
   badges: {
     type: [String],

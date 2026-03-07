@@ -1,4 +1,4 @@
-import { normalizeMetrics } from "./ normalizeService.js";
+import { normalizeMetrics } from "./normalizeService.js";
 import { computeWeightedScore } from "./weightService.js";
 import {
   detectGaming,
@@ -9,6 +9,8 @@ import {
 export function computeGitHireScore(rawMetrics) {
 
   const normalized = normalizeMetrics(rawMetrics);
+  console.log("NORMALIZED SCORES:", normalized);
+  console.log("PROJECT QUALITY SCORE:", normalized.projectQualityScore);
 
   let weightedScore = computeWeightedScore(normalized);
 

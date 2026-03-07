@@ -87,6 +87,8 @@ const worker = new Worker(
         leetcodeUsername ? analyzeLeetcode(leetcodeUsername) : null
       ]);
 
+      console.log("QUALITY METRICS RAW:", qualityMetrics);
+
       // console.timeEnd("parallelMetrics");
 
       const {
@@ -151,7 +153,7 @@ const worker = new Worker(
 
       const scoreData = computeGitHireScore(rawMetrics);
 
-      console.log("📈 GitHire Score:", scoreData.finalScore);
+      console.log("GitHire Score:", scoreData.finalScore);
 
       /* -------- Save Result -------- */
 
@@ -173,7 +175,8 @@ const worker = new Worker(
           updatedAt: new Date()
         }
       );
-
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`Worker completed in ${totalTime}s`);
       return {
         rawMetrics,
         score: scoreData.finalScore

@@ -83,17 +83,8 @@ export const getAnalyzeStatus = async (req, res) => {
       });
     }
 
-    const gitHireScore = computeGitHireScore(analysis.rawMetrics);
-
-    const scoreBreakdown = {
-      normalizedScores: gitHireScore.normalizedScores,
-      weightedScore: gitHireScore.weightedScore,
-      penalty: gitHireScore.penalty,
-      trustScore: gitHireScore.trustScore,
-      confidenceScore: gitHireScore.confidenceScore
-    };
-
-    const overallScore = gitHireScore.finalScore;
+    const scoreBreakdown = analysis.scoreBreakdown;
+    const overallScore = analysis.overallScore;
 
     // Optional: save computed breakdown back to DB
     if (!analysis.scoreBreakdown || Object.keys(analysis.scoreBreakdown).length === 0) {

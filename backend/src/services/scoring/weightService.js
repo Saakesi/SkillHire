@@ -16,7 +16,7 @@ export function computeWeightedScore(scores) {
   let total = 0;
 
   for (const key in WEIGHTS) {
-    total += scores[key] * WEIGHTS[key];
+    total += (scores[key] || 0) * WEIGHTS[key];
   }
 
   return total;
