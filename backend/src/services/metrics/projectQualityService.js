@@ -1,11 +1,7 @@
 import axios from "axios";
+import pMap from "p-map";
 
-export const getProjectQualityMetrics = async (
-  repos,
-  githubToken
-) => {
-
-  console.log("🧪 Checking project quality...");
+export const getProjectQualityMetrics = async (repos, githubToken) => {
 
   const qualityIndicators = {
     readme: 0,
@@ -15,48 +11,48 @@ export const getProjectQualityMetrics = async (
     license: 0
   };
 
-  for (const repo of repos) {
+  await pMap(
+    repos,
+    async (repo) => {
+      try {
 
-    try {
+        const res = await axios.get(
+          `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents`,
+          {
+            headers: { Authorization: `Bearer ${githubToken}` }
+          }
+        );
 
-      const res = await axios.get(
-        `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents`,
-        {
-          headers: { Authorization: `Bearer ${githubToken}` }
+        const files = res.data.map(f => f.name.toLowerCase());
+
+        if (files.some(f => f.startsWith("readme"))) qualityIndicators.readme++;
+
+        if (files.includes("dockerfile")) qualityIndicators.docker++;
+
+        if (files.some(f => f.includes("license"))) qualityIndicators.license++;
+
+        if (
+          files.includes(".github") ||
+          files.includes(".gitlab-ci.yml") ||
+          files.includes("circle.yml")
+        ) {
+          qualityIndicators.ci++;
         }
-      );
 
-      const files = res.data.map(f => f.name.toLowerCase());
+        if (
+          files.includes("test") ||
+          files.includes("tests") ||
+          files.includes("__tests__")
+        ) {
+          qualityIndicators.tests++;
+        }
 
-      if (files.some(f => f.startsWith("readme"))) qualityIndicators.readme++;
-
-      if (files.includes("dockerfile")) qualityIndicators.docker++;
-
-      if (files.some(f => f.includes("license"))) qualityIndicators.license++;
-
-      if (
-        files.includes(".github") ||
-        files.includes(".gitlab-ci.yml") ||
-        files.includes("circle.yml")
-      ) {
-        qualityIndicators.ci++;
+      } catch {
+        // ignore inaccessible repos
       }
-
-      if (
-        files.includes("test") ||
-        files.includes("tests") ||
-        files.includes("__tests__")
-      ) {
-        qualityIndicators.tests++;
-      }
-
-    } catch (err) {
-
-      console.log(`⚠️ Could not read repo ${repo.name}`);
-    }
-  }
-
-  console.log("✅ Project quality check complete");
+    },
+    { concurrency: 5 } // safe GitHub concurrency
+  );
 
   return qualityIndicators;
 };

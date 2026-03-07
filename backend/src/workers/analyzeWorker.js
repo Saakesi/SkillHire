@@ -12,9 +12,9 @@ import { detectFrameworks } from "../services/metrics/frameworkService.js";
 import { getActivityMetrics } from "../services/metrics/activityService.js";
 import { getCollaborationMetrics } from "../services/metrics/collaborationService.js";
 import { getProjectQualityMetrics } from "../services/metrics/projectQualityService.js";
+import { computeBadges } from "../services/badges/badgeService.js";
 
 dotenv.config();
-console.log("ENV MONGO_URI =", process.env.MONGO_URI);
 await mongoose.connect(process.env.MONGO_URI);
 console.log("🟢 Worker MongoDB connected");
 
@@ -26,6 +26,8 @@ const connection = new IORedis({
 const worker = new Worker(
   "analyzeProfile",
   async job => {
+    const startTime = Date.now();
+    console.log(`Job ${job.id} started`);
     const { githubId, githubUsername, githubToken } = job.data;
 
     try {
@@ -36,7 +38,9 @@ const worker = new Worker(
       );
 
       // Fetch repos
+      // console.time("fetchUserRepos");
       const repos = await fetchUserRepos(githubToken);
+      // console.timeEnd("fetchUserRepos");
 
       //popularity metrics
       const repoCount = repos.length;
@@ -51,38 +55,78 @@ const worker = new Worker(
         0
       )
 
+
+      //further optimisation->parallel metric services
+      // console.time("parallelMetrics");
+
+      const [
+        languageData,
+        frameworks,
+        activityMetrics,
+        collaborationMetrics,
+        qualityMetrics
+      ] = await Promise.all([
+        computeLanguageMetrics(repos, githubToken),
+        detectFrameworks(repos, githubToken),
+        getActivityMetrics(repos, githubToken, githubUsername),
+        getCollaborationMetrics(githubUsername, githubToken),
+        getProjectQualityMetrics(repos, githubToken)
+      ]);
+
+      // console.timeEnd("parallelMetrics");
+
       const {
         languagePercentages,
         primaryLanguage,
         languageEntropy
-      } = await computeLanguageMetrics(repos, githubToken);
+      } = languageData;
+
+
+      // console.time("computeLanguageMetrics");
+      // const {
+      //   languagePercentages,
+      //   primaryLanguage,
+      //   languageEntropy
+      // } = await computeLanguageMetrics(repos, githubToken);
+      // console.timeEnd("computeLanguageMetrics");
 
       //Stack classification
+      // console.time("getStack");
       const { developerType, techStack } = getStack(languagePercentages);
+      // console.timeEnd("getStack");
 
       //get frameworks
-      const frameworks = await detectFrameworks(repos, githubToken);
+      // console.time("detectFrameworks");
+      // const frameworks = await detectFrameworks(repos, githubToken);
+      // console.timeEnd("detectFrameworks");
 
       // activity
-      console.log("🚀 Running activity metrics...");
-      const activityMetrics = await getActivityMetrics(
-        repos,
-        githubToken
-      );
+      // console.log("Running activity metrics...");
+      // console.time("getActivityMetrics");
+      // const activityMetrics = await getActivityMetrics(
+      //   repos,
+      //   githubToken,
+      //   githubUsername
+      // );
+      // console.timeEnd("getActivityMetrics");
 
       // collaboration
-      console.log("🚀 Running collaboration metrics...");
-      const collaborationMetrics = await getCollaborationMetrics(
-        githubUsername,
-        githubToken
-      );
+      // console.log("Running collaboration metrics...");
+      // console.time("getCollaborationMetrics");
+      // const collaborationMetrics = await getCollaborationMetrics(
+      //   githubUsername,
+      //   githubToken
+      // );
+      // console.timeEnd("getCollaborationMetrics");
 
       // project quality
-      console.log("🚀 Running project quality metrics...");
-      const qualityMetrics = await getProjectQualityMetrics(
-        repos,
-        githubToken
-      );
+      // console.log("Running project quality metrics...");
+      // console.time("getProjectQualityMetrics");
+      // const qualityMetrics = await getProjectQualityMetrics(
+      //   repos,
+      //   githubToken
+      // );
+      // console.timeEnd("getProjectQualityMetrics");
 
       const rawMetrics = {
         repoCount,
@@ -99,16 +143,24 @@ const worker = new Worker(
         qualityIndicators: qualityMetrics
       };
 
+      //get badges
+      // console.log("Badge calculation started..");
+      const badges = computeBadges(rawMetrics);
+      // console.log("Badge calculation ended..", badges);
+
       // save final result
       await Analysis.findOneAndUpdate(
         { githubId },
         {
           status: "completed",
           rawMetrics,
+          badges,
           updatedAt: new Date()
         }
       );
 
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`Worker completed in ${totalTime}s`);
       return rawMetrics;
     } catch (error) {
       console.error("Analysis failed:", error.message);

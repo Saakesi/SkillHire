@@ -1,26 +1,37 @@
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
 
-export const StatCard = ({ icon, label, value, trend, trendUp, className = '' }) => {
+export const StatCard = ({ icon, label, value, trend, trendUp, className = "" }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-card border border-border rounded-2xl p-6 ${className}`}
+      whileHover={{ scale: 1.06 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      className={`bg-card border border-border rounded-2xl p-6 transition-all duration-200 hover:border-purple-500 hover:shadow-lg ${className}`}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="p-3 rounded-xl bg-primary/10 text-primary">{icon}</div>
+        <div className="p-3 rounded-xl bg-purple-500/10 text-purple-500">
+          {icon}
+        </div>
+
         {trend && (
           <span
             className={`text-sm font-medium ${
-              trendUp ? 'text-green-500' : 'text-red-500'
+              trendUp ? "text-green-500" : "text-red-500"
             }`}
           >
-            {trendUp ? '↑' : '↓'} {trend}
+            {trendUp ? "↑" : "↓"} {trend}
           </span>
         )}
       </div>
-      <div className="text-3xl font-bold text-foreground mb-1">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
+
+      <div className="text-3xl font-bold text-foreground mb-1">
+        {value}
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        {label}
+      </div>
     </motion.div>
   );
 };

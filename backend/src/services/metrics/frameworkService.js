@@ -1,59 +1,67 @@
 import axios from "axios";
+import pMap from "p-map";
 
 export const detectFrameworks = async (repos, githubToken) => {
-    const detectedFrameworks = new Set();
+  const detectedFrameworks = new Set();
 
-    for (const repo of repos) {
+  await pMap(
+    repos,
+    async (repo) => {
+      const owner = repo.owner.login;
+      const repoName = repo.name;
+
+      const pkgUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/package.json`;
+      const reqUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/requirements.txt`;
+
+      // Fetch both files in parallel
+      const [pkgRes, reqRes] = await Promise.allSettled([
+        axios.get(pkgUrl, {
+          headers: { Authorization: `Bearer ${githubToken}` }
+        }),
+        axios.get(reqUrl, {
+          headers: { Authorization: `Bearer ${githubToken}` }
+        })
+      ]);
+
+      // ----- JS Ecosystem -----
+      if (pkgRes.status === "fulfilled") {
         try {
-            // JS Ecosystem
-            const pkgRes = await axios.get(
-                `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents/package.json`,
-                {
-                    headers: { Authorization: `Bearer ${githubToken}` }
-                }
-            );
+          const pkgContent = JSON.parse(
+            Buffer.from(pkgRes.value.data.content, "base64").toString()
+          );
 
-            const pkgContent = JSON.parse(
-                Buffer.from(pkgRes.data.content, "base64").toString()
-            );
+          const dependencies = {
+            ...pkgContent.dependencies,
+            ...pkgContent.devDependencies
+          };
 
-            const dependencies = {
-                ...pkgContent.dependencies,
-                ...pkgContent.devDependencies
-            };
+          if (dependencies) {
+            if (dependencies.react) detectedFrameworks.add("React");
+            if (dependencies.next) detectedFrameworks.add("Next.js");
+            if (dependencies.express) detectedFrameworks.add("Express");
+            if (dependencies["@nestjs/core"]) detectedFrameworks.add("NestJS");
+            if (dependencies.vue) detectedFrameworks.add("Vue");
+            if (dependencies.angular) detectedFrameworks.add("Angular");
+          }
+        } catch {}
+      }
 
-            if (dependencies) {
-                if (dependencies.react) detectedFrameworks.add("React");
-                if (dependencies.next) detectedFrameworks.add("Next.js");
-                if (dependencies.express) detectedFrameworks.add("Express");
-                if (dependencies["@nestjs/core"]) detectedFrameworks.add("NestJS");
-                if (dependencies.vue) detectedFrameworks.add("Vue");
-                if (dependencies.angular) detectedFrameworks.add("Angular");
-            }
+      // ----- Python Ecosystem -----
+      if (reqRes.status === "fulfilled") {
+        const reqContent = Buffer.from(
+          reqRes.value.data.content,
+          "base64"
+        )
+          .toString()
+          .toLowerCase();
 
-        } catch (err) {
-            // package.json not found - ignore
-        }
+        if (reqContent.includes("django")) detectedFrameworks.add("Django");
+        if (reqContent.includes("flask")) detectedFrameworks.add("Flask");
+        if (reqContent.includes("fastapi")) detectedFrameworks.add("FastAPI");
+      }
+    },
+    { concurrency: 5 } // safe concurrency for GitHub API
+  );
 
-        try {
-            // Python Ecosystem
-            const reqRes = await axios.get(
-                `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents/requirements.txt`,
-                {
-                    headers: { Authorization: `Bearer ${githubToken}` }
-                }
-            );
-
-            const reqContent = Buffer.from(reqRes.data.content, "base64").toString().toLowerCase();
-
-            if (reqContent.includes("django")) detectedFrameworks.add("Django");
-            if (reqContent.includes("flask")) detectedFrameworks.add("Flask");
-            if (reqContent.includes("fastapi")) detectedFrameworks.add("FastAPI");
-
-        } catch (err) {
-            // requirements.txt not found - we will ignore this
-        }
-    }
-
-    return Array.from(detectedFrameworks);
+  return Array.from(detectedFrameworks);
 };

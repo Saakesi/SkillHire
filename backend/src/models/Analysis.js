@@ -1,4 +1,3 @@
-// models/Analysis.js
 import mongoose from "mongoose";
 
 const rawMetricsSchema = new mongoose.Schema({
@@ -48,6 +47,12 @@ const rawMetricsSchema = new mongoose.Schema({
     default: 0
   },
 
+  monthlyCommits: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
+
   // ===== Collaboration metrics =====
   prCount: {
     type: Number,
@@ -93,7 +98,11 @@ const analysisSchema = new mongoose.Schema({
     default: null,
     index: true
   },
-  // result: { type: Object },
+  badges: {
+    type: [String],
+    default: [],
+    index: true
+  },
   error: { type: String, default: null }
 }, { timestamps: true });
 

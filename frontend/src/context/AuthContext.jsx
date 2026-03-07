@@ -7,7 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 On app load → ask backend "who am I?"
   useEffect(() => {
     const initAuth = async () => {
       const me = await authService.getCurrentUser();
