@@ -1,419 +1,554 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from "react";
+import axios from "axios";
+import { motion } from "framer-motion";
 import {
     Code2,
     Star,
     GitFork,
-    Users,
-    MapPin,
-    Briefcase,
-    ExternalLink,
-    Edit3,
-    TrendingUp,
+    GitPullRequest,
+    GitMerge,
+    Flame,
     Calendar,
     Activity,
-} from 'lucide-react';
-// import { useAuth } from '../context/AuthContext';
-import { Layout } from '../components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { Avatar } from '../components/ui/Avatar';
-import { StatCard } from '../components/ui/Stats';
-import { Input, Select } from '../components/ui/Input';
-import { PageLoader } from '../components/ui/Loader';
+    ExternalLink,
+    AlertCircle,
+    PlayCircle
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Layout } from "../components/layout/Layout";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { Avatar } from "../components/ui/Avatar";
+import { StatCard } from "../components/ui/Stats";
+import { PageLoader } from "../components/ui/Loader";
+import ProgressBar from "../components/ui/ProgressBar";
 
-// Mock activity data for chart
-const activityData = [
-    { month: 'Jul', commits: 45 },
-    { month: 'Aug', commits: 72 },
-    { month: 'Sep', commits: 58 },
-    { month: 'Oct', commits: 89 },
-    { month: 'Nov', commits: 67 },
-    { month: 'Dec', commits: 94 },
-    { month: 'Jan', commits: 78 },
-];
+const API = import.meta.env.VITE_API_URL;
 
 export const DeveloperDashboard = () => {
-    //   const { user, loading, updateProfile } = useAuth();
 
-    const [user] = useState({
-        name: 'Harsh Singhal',
-        username: 'harshsinghal',
-        avatar: null,
-        bio: 'Full-stack developer passionate about React and system design.',
-        location: 'India',
-        company: 'Open Source',
-        joinedAt: '2022-03-01',
-        openToWork: true,
-        preferredRole: 'Frontend Engineer',
-        stats: {
-            totalRepos: 47,
-            totalStars: 1200,
-            totalForks: 83,
-            followers: 642,
-            contributions: 2847,
-        },
-        skills: ['React', 'TypeScript', 'Node.js', 'MongoDB'],
-        topLanguages: [
-            { name: 'TypeScript', percentage: 38, color: '#3178c6' },
-            { name: 'JavaScript', percentage: 28, color: '#f7df1e' },
-            { name: 'Python', percentage: 20, color: '#3776ab' },
-            { name: 'C++', percentage: 14, color: '#00599c' },
-        ],
-    });
+    const { profile } = useAuth();
+    const username = profile?.username;
 
+    const [metrics, setMetrics] = useState(null);
+    const [badges, setBadges] = useState([]);
+    const [status, setStatus] = useState(null);
+    const [updatedAt, setUpdatedAt] = useState(null);
 
-    const loading = false;
+    const [loading, setLoading] = useState(false);
+    const [polling, setPolling] = useState(false);
 
-    const updateProfile = async (data) => {
-        console.log('Mock updateProfile called with:', data);
-        return { ...user, ...data };
-    };
+    if (!profile) return <PageLoader />;
 
-    const [editing, setEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        location: '',
-        openToWork: true,
-        preferredRole: '',
-    });
+    // ---------------- FETCH EXISTING ANALYSIS ----------------
 
     useEffect(() => {
-        if (user) {
-            setFormData({
-                location: user.location || '',
-                openToWork: user.openToWork ?? true,
-                preferredRole: user.preferredRole || '',
-            });
+        if (!username) return;
+
+        const fetchAnalysis = async () => {
+            try {
+
+                const res = await axios.get(`${API}/api/analyze/status/${username}`);
+
+                if (res.data?.rawMetrics) {
+                    setMetrics(res.data.rawMetrics);
+                    setBadges(res.data.badges || []);
+                    setUpdatedAt(res.data.updatedAt);
+                    setStatus(res.data.status);
+                }
+
+                if (res.data.status === "processing" || res.data.status === "queued") {
+                    setPolling(true);
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchAnalysis();
+
+    }, [username]);
+
+    // ---------------- ANALYZE BUTTON ----------------
+
+    const handleAnalyze = async () => {
+
+        try {
+
+            setLoading(true);
+
+            await axios.post(
+                `${API}/api/analyze`,
+                {},
+                { withCredentials: true }
+            );
+
+            setPolling(true);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
         }
-    }, [user]);
-
-    if (loading) return <PageLoader />;
-    if (!user) return null;
-
-    const handleSave = async () => {
-        await updateProfile(formData);
-        setEditing(false);
     };
 
-    const publicProfileUrl = `${window.location.origin}/profile/${user.username}`;
+    // ---------------- POLLING ----------------
+
+    useEffect(() => {
+
+        if (!polling) return;
+
+        const interval = setInterval(async () => {
+
+            const res = await axios.get(`${API}/api/analyze/status/${username}`, {
+                withCredentials: true
+            });
+
+            setStatus(res.data.status);
+
+            if (res.data.status === "completed") {
+
+                setMetrics(res.data.rawMetrics);
+                setBadges(res.data.badges || []);
+                setUpdatedAt(res.data.updatedAt);
+
+                setPolling(false);
+                clearInterval(interval);
+            }
+
+        }, 2000);
+
+        return () => clearInterval(interval);
+
+    }, [polling]);
+
+    // ---------------- MONTHLY COMMITS ----------------
+
+    const monthlyCommits = useMemo(() => {
+
+        const months = [];
+        const now = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+
+            const key = `${d.getFullYear()}-${String(
+                d.getMonth() + 1
+            ).padStart(2, "0")}`;
+
+            months.push({
+                label: d.toLocaleString("default", { month: "short" }),
+                commits: metrics?.monthlyCommits?.[key] || 0
+            });
+        }
+
+        return months;
+
+    }, [metrics]);
+
+    const maxCommits = Math.max(...monthlyCommits.map(m => m.commits), 1);
+
+    // ---------------- TOP LANGUAGES ----------------
+
+    const topLanguages = useMemo(() => {
+
+        if (!metrics?.languagePercentages) return [];
+
+        return Object.entries(metrics.languagePercentages)
+            .map(([name, value]) => ({
+                name,
+                percent: Math.round(value * 100)
+            }))
+            .sort((a, b) => b.percent - a.percent)
+            .slice(0, 5);
+
+    }, [metrics]);
+
+    // ---------------- TECH STACK ----------------
+
+    const techIcons = {
+        javascript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+        typescript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
+        python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+        react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
+        express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
+        html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
+        css: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
+        ejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg"
+    };
+    const languageColors = {
+        javascript: "#f7df1e",
+        typescript: "#3178c6",
+        python: "#3776ab",
+        java: "#f89820",
+        go: "#00ADD8",
+        rust: "#dea584",
+        c: "#A8B9CC",
+        cpp: "#00599C",
+        csharp: "#239120",
+        php: "#777BB4",
+        ruby: "#CC342D",
+        swift: "#FA7343",
+        kotlin: "#7F52FF",
+        dart: "#0175C2",
+        shell: "#89e051",
+        html: "#e34c26",
+        css: "#264de4",
+    };
+
+    const techStack = [
+        ...(Object.keys(metrics?.languagePercentages || {})),
+        ...(metrics?.frameworks || [])
+    ];
+
+    const publicProfileUrl = `${window.location.origin}/profile/${username}`;
 
     return (
+
         <Layout showFooter={false}>
+
             <div className="min-h-screen bg-background">
-                {/* Header */}
-                <div className="gradient-bg-subtle py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-                            <Avatar src={user.avatar} name={user.name} size="2xl" />
 
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h1 className="text-3xl font-bold text-foreground">{user.name}</h1>
-                                    {user.openToWork && (
-                                        <Badge variant="success">Open to Work</Badge>
-                                    )}
-                                </div>
-                                <p className="text-muted-foreground mb-2">@{user.username}</p>
-                                <p className="text-foreground mb-4">{user.bio}</p>
+                {/* HEADER */}
 
-                                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                                    {user.location && (
-                                        <span className="flex items-center gap-1">
-                                            <MapPin className="w-4 h-4" />
-                                            {user.location}
-                                        </span>
-                                    )}
-                                    {user.company && (
-                                        <span className="flex items-center gap-1">
-                                            <Briefcase className="w-4 h-4" />
-                                            {user.company}
-                                        </span>
-                                    )}
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="w-4 h-4" />
-                                        Joined {new Date(user.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                                    </span>
-                                </div>
-                            </div>
+                <div className="gradient-bg-subtle py-10 sm:py-12">
 
-                            <div className="flex gap-3">
-                                <Link to={`/profile/${user.username}`}>
-                                    <Button variant="outline" icon={<ExternalLink className="w-4 h-4" />}>
-                                        View Public Profile
-                                    </Button>
-                                </Link>
-                                <Button
-                                    variant="primary"
-                                    icon={<Edit3 className="w-4 h-4" />}
-                                    onClick={() => setEditing(true)}
-                                >
-                                    Edit Profile
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
-                {/* Main Content */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <StatCard
-                            icon={<Code2 className="w-5 h-5" />}
-                            label="Total Repos"
-                            value={user.stats.totalRepos}
-                            trend="+5"
-                            trendUp
-                        />
-                        <StatCard
-                            icon={<Star className="w-5 h-5" />}
-                            label="Total Stars"
-                            value={user.stats.totalStars.toLocaleString()}
-                            trend="+12%"
-                            trendUp
-                        />
-                        <StatCard
-                            icon={<GitFork className="w-5 h-5" />}
-                            label="Total Forks"
-                            value={user.stats.totalForks}
-                        />
-                        <StatCard
-                            icon={<Users className="w-5 h-5" />}
-                            label="Followers"
-                            value={user.stats.followers}
-                            trend="+8%"
-                            trendUp
-                        />
-                    </div>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-                    <div className="grid lg:grid-cols-3 gap-8">
-                        {/* Left Column */}
-                        <div className="lg:col-span-2 space-y-8">
-                            {/* Activity Chart */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Activity className="w-5 h-5 text-primary" />
-                                        Contribution Activity
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="h-48 flex items-end gap-2">
-                                        {activityData.map((item, index) => (
-                                            <motion.div
-                                                key={item.month}
-                                                initial={{ height: 0 }}
-                                                animate={{ height: `${(item.commits / 100) * 100}%` }}
-                                                transition={{ delay: index * 0.1 }}
-                                                className="flex-1 flex flex-col items-center"
-                                            >
-                                                <div
-                                                    className="w-full rounded-t-lg gradient-bg"
-                                                    style={{ height: '100%' }}
-                                                />
-                                                <span className="text-xs text-muted-foreground mt-2">
-                                                    {item.month}
-                                                </span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-4 text-center">
-                                        <p className="text-2xl font-bold text-foreground">
-                                            {user.stats.contributions.toLocaleString()}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            contributions in the last year
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
 
-                            {/* Top Languages */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Code2 className="w-5 h-5 text-primary" />
-                                        Top Languages
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {user.topLanguages.map((lang) => (
-                                            <div key={lang.name}>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span
-                                                            className="w-3 h-3 rounded-full"
-                                                            style={{ backgroundColor: lang.color }}
-                                                        />
-                                                        <span className="font-medium text-foreground">
-                                                            {lang.name}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-muted-foreground">
-                                                        {lang.percentage}%
-                                                    </span>
-                                                </div>
-                                                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${lang.percentage}%` }}
-                                                        transition={{ duration: 0.5 }}
-                                                        className="h-full rounded-full"
-                                                        style={{ backgroundColor: lang.color }}
-                                                    />
-                                                </div>
+                                <Avatar
+                                    src={profile.avatarUrl}
+                                    name={profile.name || profile.username}
+                                    size="xl"
+                                    className="sm:size-2xl"
+                                />
+
+                                <div>
+
+                                    <h1 className="text-2xl sm:text-3xl font-bold">
+                                        {profile.name || profile.username}
+                                    </h1>
+
+                                    <a
+                                        href={`https://github.com/${profile.username}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                                    >
+                                        @{profile.username}
+                                        <ExternalLink className="w-3 h-3" />
+                                    </a>
+
+                                    <p className="text-muted-foreground mt-1">
+                                        {profile.bio}
+                                    </p>
+
+                                    {metrics && (
+
+                                        <div className="flex flex-wrap gap-3 mt-3">
+
+                                            <div className="px-3 py-2 border border-primary/40 bg-primary/10 rounded-lg text-sm">
+                                                Primary Language: <b>{metrics.primaryLanguage}</b>
                                             </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
 
-                        {/* Right Column */}
-                        <div className="space-y-8">
-                            {/* Public Profile URL */}
-                            <Card variant="gradient">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Your Public Profile</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex items-center gap-2 p-3 bg-background/50 rounded-lg">
-                                        <code className="text-sm text-foreground truncate flex-1">
-                                            {publicProfileUrl}
-                                        </code>
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText(publicProfileUrl)}
-                                            className="text-primary hover:text-primary/80 transition-colors"
-                                        >
-                                            Copy
-                                        </button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                            <div className="px-3 py-2 border border-primary/40 bg-primary/10 rounded-lg text-sm">
+                                                Developer: <b>{metrics.developerType}</b>
+                                            </div>
 
-                            {/* Skills */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-primary" />
-                                        Skills
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
-                                        {user.skills.map((skill) => (
-                                            <Badge key={skill} variant="primary">
-                                                {skill}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Quick Stats */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Developer Score</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-center">
-                                        <div className="relative inline-flex items-center justify-center w-32 h-32 mb-4">
-                                            <svg className="w-full h-full transform -rotate-90">
-                                                <circle
-                                                    cx="64"
-                                                    cy="64"
-                                                    r="56"
-                                                    stroke="currentColor"
-                                                    strokeWidth="8"
-                                                    fill="none"
-                                                    className="text-secondary"
-                                                />
-                                                <motion.circle
-                                                    cx="64"
-                                                    cy="64"
-                                                    r="56"
-                                                    stroke="url(#gradient)"
-                                                    strokeWidth="8"
-                                                    fill="none"
-                                                    strokeLinecap="round"
-                                                    initial={{ strokeDasharray: '0 352' }}
-                                                    animate={{ strokeDasharray: '317 352' }}
-                                                    transition={{ duration: 1 }}
-                                                />
-                                                <defs>
-                                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                        <stop offset="0%" stopColor="hsl(var(--primary))" />
-                                                        <stop offset="100%" stopColor="hsl(var(--accent))" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-                                            <span className="absolute text-4xl font-bold text-foreground">92</span>
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Top 8% of developers
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    )}
+
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
+
+                                <Button
+                                    variant="gradient"
+                                    icon={<PlayCircle />}
+                                    onClick={handleAnalyze}
+                                    disabled={loading || polling || status === "processing" || status === "queued"}
+                                >
+                                    {loading
+                                        ? "Starting..."
+                                        : polling || status === "processing"
+                                            ? "Analyzing..."
+                                            : "Analyze"}
+                                </Button>
+
+                                {updatedAt && (
+                                    <span className="text-xs text-muted-foreground">
+                                        Last updated: {new Date(updatedAt).toLocaleString()}
+                                    </span>
+                                )}
+
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Edit Modal */}
-            {editing && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-card border border-border rounded-2xl p-8 w-full max-w-md shadow-xl"
-                    >
-                        <h2 className="text-2xl font-bold text-foreground mb-6">Edit Profile</h2>
+                {/* METRICS */}
 
-                        <div className="space-y-4">
-                            <Input
-                                label="Location"
-                                value={formData.location}
-                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                placeholder="San Francisco, CA"
-                            />
+                {metrics && (
 
-                            <Input
-                                label="Preferred Role"
-                                value={formData.preferredRole}
-                                onChange={(e) => setFormData({ ...formData, preferredRole: e.target.value })}
-                                placeholder="Senior Frontend Engineer"
-                            />
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-                            <div className="flex items-center justify-between py-2">
-                                <label className="text-sm font-medium text-foreground">Open to Work</label>
-                                <button
-                                    onClick={() => setFormData({ ...formData, openToWork: !formData.openToWork })}
-                                    className={`relative w-12 h-6 rounded-full transition-colors ${formData.openToWork ? 'bg-primary' : 'bg-secondary'
-                                        }`}
-                                >
-                                    <span
-                                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.openToWork ? 'translate-x-6' : ''
-                                            }`}
-                                    />
-                                </button>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10">
+
+                            <StatCard icon={<Code2 />} label="Repos" value={metrics.repoCount} />
+                            <StatCard icon={<Star />} label="Stars" value={metrics.totalStars} />
+                            <StatCard icon={<GitFork />} label="Forks" value={metrics.totalForks} />
+                            <StatCard icon={<Activity />} label="Commits (6M)" value={metrics.commitCount6Months} />
+                            <StatCard icon={<Calendar />} label="Active Weeks" value={metrics.activeWeeks} />
+                            <StatCard icon={<Flame />} label="Streak" value={metrics.longestStreak} />
+                            <StatCard icon={<GitPullRequest />} label="PRs" value={metrics.prCount} />
+                            <StatCard icon={<GitMerge />} label="Merged PR" value={metrics.mergedPRCount} />
+                            <StatCard icon={<ExternalLink />} label="External PR" value={metrics.externalPRs} />
+                            <StatCard icon={<AlertCircle />} label="Issues" value={metrics.issueCount} />
+
+                        </div>
+
+                        {/* CHART + SIDE */}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                            {/* LEFT SIDE */}
+
+                            <div className="lg:col-span-2 space-y-8">
+
+                                {/* CONTRIBUTION ACTIVITY */}
+
+                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Activity /> Contribution Activity
+                                        </CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent>
+
+                                        <div className="flex items-end gap-2 sm:gap-4 h-48 sm:h-56 overflow-x-auto">
+
+                                            {monthlyCommits.map((m, i) => {
+
+                                                const height = Math.max((m.commits / maxCommits) * 180, 10);
+
+                                                return (
+                                                    <div key={i} className="flex-1 min-w-[40px] flex flex-col items-center">
+
+                                                        <div className="relative group w-full flex items-end justify-center">
+
+                                                            <span className="absolute -top-6 opacity-0 group-hover:opacity-100 transition text-xs bg-black text-white px-2 py-1 rounded">
+                                                                {m.commits}
+                                                            </span>
+
+                                                            <motion.div
+                                                                initial={{ height: 0 }}
+                                                                animate={{ height }}
+                                                                transition={{ duration: 0.6 }}
+                                                                className="w-full rounded-md bg-gradient-to-t from-blue-500 to-purple-500"
+                                                            />
+
+                                                        </div>
+
+                                                        <span className="text-xs mt-2">{m.label}</span>
+
+                                                    </div>
+                                                );
+                                            })}
+
+                                        </div>
+
+                                        <div className="text-center mt-6">
+                                            <p className="text-2xl font-bold">
+                                                {metrics.commitCount6Months}
+                                            </p>
+
+                                            <p className="text-sm text-muted-foreground">
+                                                commits in the last 6 months
+                                            </p>
+                                        </div>
+
+                                    </CardContent>
+                                </Card>
+
+                                {/* TOP LANGUAGES */}
+
+                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                    <CardHeader>
+                                        <CardTitle>Top Languages</CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent>
+
+                                        <div className="space-y-4">
+
+                                            {topLanguages.map((lang) => (
+
+                                                <div key={lang.name}>
+
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span>{lang.name}</span>
+                                                        <span>{lang.percent}%</span>
+                                                    </div>
+
+                                                    <ProgressBar value={lang.percent} color={languageColors[lang.name.toLowerCase()] || "#6366f1"} />
+
+                                                </div>
+
+                                            ))}
+
+                                        </div>
+
+                                    </CardContent>
+                                </Card>
+
                             </div>
+
+                            {/* RIGHT SIDE */}
+
+                            <div className="space-y-8">
+
+                                {/* PUBLIC PROFILE */}
+
+                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                    <CardHeader>
+                                        <CardTitle>Your Public Profile</CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent>
+
+                                        <div className="flex items-center gap-2 bg-background/60 p-3 rounded-lg">
+
+                                            <code className="text-sm flex-1 break-all">
+                                                {publicProfileUrl}
+                                            </code>
+
+                                            <button
+                                                onClick={() => navigator.clipboard.writeText(publicProfileUrl)}
+                                                className="text-primary"
+                                            >
+                                                Copy
+                                            </button>
+
+                                        </div>
+
+                                    </CardContent>
+
+                                </Card>
+
+                                {/* SKILLS */}
+
+                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                    <CardHeader>
+                                        <CardTitle>Skills</CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent>
+
+                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+
+                                            {techStack.map(skill => {
+
+                                                const key = skill.toLowerCase();
+
+                                                return (
+
+                                                    <div
+                                                        key={skill}
+                                                        className="flex items-center gap-2 px-2 sm:px-3 py-1 border border-border rounded-lg text-xs sm:text-sm hover:border-primary/40 hover:scale-105 transition"
+                                                    >
+
+                                                        <img
+                                                            src={techIcons[key]}
+                                                            className="w-4 h-4"
+                                                        />
+
+                                                        <span>{skill}</span>
+
+                                                    </div>
+                                                );
+                                            })}
+
+                                        </div>
+
+                                    </CardContent>
+
+                                </Card>
+
+                                {/* DEVELOPER SCORE */}
+
+                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                    <CardHeader>
+                                        <CardTitle>Developer Score</CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent>
+
+                                        <div className="text-center">
+
+                                            <div className="relative inline-flex items-center justify-center w-32 h-32">
+
+                                                <svg className="w-full h-full -rotate-90">
+
+                                                    <circle
+                                                        cx="64"
+                                                        cy="64"
+                                                        r="56"
+                                                        stroke="currentColor"
+                                                        strokeWidth="8"
+                                                        fill="none"
+                                                        className="text-secondary"
+                                                    />
+
+                                                    <circle
+                                                        cx="64"
+                                                        cy="64"
+                                                        r="56"
+                                                        stroke="url(#gradient)"
+                                                        strokeWidth="8"
+                                                        fill="none"
+                                                        strokeLinecap="round"
+                                                        strokeDasharray="317 352"
+                                                    />
+
+                                                </svg>
+
+                                                <span className="absolute text-4xl font-bold">
+                                                    92
+                                                </span>
+
+                                            </div>
+
+                                            <p className="text-sm text-muted-foreground mt-3">
+                                                Top 8% of developers
+                                            </p>
+
+                                        </div>
+
+                                    </CardContent>
+
+                                </Card>
+
+                            </div>
+
                         </div>
 
-                        <div className="flex gap-3 mt-8">
-                            <Button variant="secondary" onClick={() => setEditing(false)} className="flex-1">
-                                Cancel
-                            </Button>
-                            <Button variant="gradient" onClick={handleSave} className="flex-1">
-                                Save Changes
-                            </Button>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+
+
+                    </div>
+                )}
+            </div>
         </Layout>
     );
 };

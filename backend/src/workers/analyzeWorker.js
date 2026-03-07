@@ -26,6 +26,7 @@ const connection = new IORedis({
 const worker = new Worker(
   "analyzeProfile",
   async job => {
+    const startTime = Date.now();
     console.log(`Job ${job.id} started`);
     const { githubId, githubUsername, githubToken } = job.data;
 
@@ -37,9 +38,9 @@ const worker = new Worker(
       );
 
       // Fetch repos
-      console.time("fetchUserRepos");
+      // console.time("fetchUserRepos");
       const repos = await fetchUserRepos(githubToken);
-      console.timeEnd("fetchUserRepos");
+      // console.timeEnd("fetchUserRepos");
 
       //popularity metrics
       const repoCount = repos.length;
@@ -56,7 +57,7 @@ const worker = new Worker(
 
 
       //further optimisation->parallel metric services
-      console.time("parallelMetrics");
+      // console.time("parallelMetrics");
 
       const [
         languageData,
@@ -72,7 +73,7 @@ const worker = new Worker(
         getProjectQualityMetrics(repos, githubToken)
       ]);
 
-      console.timeEnd("parallelMetrics");
+      // console.timeEnd("parallelMetrics");
 
       const {
         languagePercentages,
@@ -90,9 +91,9 @@ const worker = new Worker(
       // console.timeEnd("computeLanguageMetrics");
 
       //Stack classification
-      console.time("getStack");
+      // console.time("getStack");
       const { developerType, techStack } = getStack(languagePercentages);
-      console.timeEnd("getStack");
+      // console.timeEnd("getStack");
 
       //get frameworks
       // console.time("detectFrameworks");
@@ -143,9 +144,9 @@ const worker = new Worker(
       };
 
       //get badges
-      console.log("Badge calculation started..");
+      // console.log("Badge calculation started..");
       const badges = computeBadges(rawMetrics);
-      console.log("Badge calculation ended..", badges);
+      // console.log("Badge calculation ended..", badges);
 
       // save final result
       await Analysis.findOneAndUpdate(
@@ -158,6 +159,8 @@ const worker = new Worker(
         }
       );
 
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`Worker completed in ${totalTime}s`);
       return rawMetrics;
     } catch (error) {
       console.error("Analysis failed:", error.message);

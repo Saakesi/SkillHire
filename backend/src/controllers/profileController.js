@@ -109,7 +109,7 @@ export const updateProfile = async (req, res) => {
 
     // Clear Redis cache for this user
     if (profile.username) {
-      await redisClient.del(`profile:${profile.username}`);
+      await redis.del(`profile:${profile.username}`);
     }
 
     res.json(profile);

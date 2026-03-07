@@ -7,7 +7,7 @@ export function computeBadges(rawMetrics) {
     try {
       if (badge.condition(rawMetrics)) {
         badges.push(badge.id);
-        console.log(badge.id);
+        // console.log(badge.id);
       }
     } catch (err) {
       console.error(`Badge rule failed: ${badge.id}`);
