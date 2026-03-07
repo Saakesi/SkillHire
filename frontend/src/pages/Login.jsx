@@ -9,7 +9,6 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { loginWithGitHub } = useAuth();
 
-  // 🔥 MOCK LOGIN HANDLER
   const handleGitHubLogin = () => {
     setLoading(true);
     loginWithGitHub();

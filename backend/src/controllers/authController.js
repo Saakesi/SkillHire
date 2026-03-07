@@ -48,6 +48,7 @@ export const githubCallback = async (req, res) => {
     if (!profile) {
       profile = await Profile.create({
         githubId: githubUser.id,
+        name: githubUser.name,
         username: githubUser.login.toLowerCase(),
         avatarUrl: githubUser.avatar_url,
         bio: githubUser.bio || "",
@@ -126,6 +127,7 @@ export const getMe = async (req, res) => {
 
     res.json({
       githubId: decoded.githubId,
+      name: decoded.name,
       username: decoded.username,
       role: decoded.role,
       profile, // includes avatarUrl

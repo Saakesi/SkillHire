@@ -12,15 +12,12 @@ import { detectFrameworks } from "../services/metrics/frameworkService.js";
 import { getActivityMetrics } from "../services/metrics/activityService.js";
 import { getCollaborationMetrics } from "../services/metrics/collaborationService.js";
 import { getProjectQualityMetrics } from "../services/metrics/projectQualityService.js";
+import { computeBadges } from "../services/badges/badgeService.js";
+import { analyzeLeetcode } from "../services/leetcode/leetcodeService.js";
 
 import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
 
 dotenv.config();
-
-/* ------------------- MongoDB ------------------- */
-
-console.log("ENV MONGO_URI =", process.env.MONGO_URI);
-
 await mongoose.connect(process.env.MONGO_URI);
 
 console.log("🟢 Worker MongoDB connected");
@@ -36,8 +33,9 @@ const connection = new IORedis({
 const worker = new Worker(
   "analyzeProfile",
   async job => {
-
-    const { githubId, githubUsername, githubToken } = job.data;
+    const startTime = Date.now();
+    console.log(`Job ${job.id} started`);
+    const { githubId, githubUsername, githubToken, leetcodeUsername } = job.data;
 
     try {
 
@@ -50,9 +48,10 @@ const worker = new Worker(
         { status: "processing" }
       );
 
-      /* -------- Fetch repos -------- */
-
+      // Fetch repos
+      // console.time("fetchUserRepos");
       const repos = await fetchUserRepos(githubToken);
+      // console.timeEnd("fetchUserRepos");
 
       const repoCount = repos.length;
 
@@ -68,50 +67,69 @@ const worker = new Worker(
 
       /* -------- Language Metrics -------- */
 
+
+      //further optimisation->parallel metric services
+      // console.time("parallelMetrics");
+
+      const [
+        languageData,
+        frameworks,
+        activityMetrics,
+        collaborationMetrics,
+        qualityMetrics,
+        leetcodeMetrics
+      ] = await Promise.all([
+        computeLanguageMetrics(repos, githubToken),
+        detectFrameworks(repos, githubToken),
+        getActivityMetrics(repos, githubToken, githubUsername),
+        getCollaborationMetrics(githubUsername, githubToken),
+        getProjectQualityMetrics(repos, githubToken),
+        leetcodeUsername ? analyzeLeetcode(leetcodeUsername) : null
+      ]);
+
+      // console.timeEnd("parallelMetrics");
+
       const {
         languagePercentages,
         primaryLanguage,
         languageEntropy
-      } = await computeLanguageMetrics(repos, githubToken);
+      } = languageData;
 
-      /* -------- Stack Classification -------- */
+      //Stack classification
+      // console.time("getStack");
+      const { developerType, techStack } = getStack(languagePercentages);
+      // console.timeEnd("getStack");
 
-      const { developerType, techStack } =
-        getStack(languagePercentages);
 
-      /* -------- Framework Detection -------- */
+      const filteredQualityMetrics = Object.fromEntries(
+        Object.entries(qualityMetrics).filter(([_, value]) => value > 0)
+      );
 
-      const frameworks =
-        await detectFrameworks(repos, githubToken);
+      // ---------------- DEPLOYMENT SKILLS ----------------
+      const deploymentMap = {
+        vercel: "Vercel",
+        render: "Render",
+        aws: "AWS",
+        firebase: "Firebase",
+        netlify: "Netlify",
+        kubernetes: "Kubernetes"
+      };
+      const deploymentSkills = Object.keys(deploymentMap)
+        .filter(key => qualityMetrics[key] > 0)
+        .map(key => deploymentMap[key]);
 
-      /* -------- Activity Metrics -------- */
+      // ---------------- LANGUAGE SKILLS ----------------
 
-      console.log("📊 Running activity metrics...");
+      const languageSkills = Object.keys(languagePercentages);
 
-      const activityMetrics =
-        await getActivityMetrics(repos, githubToken);
+      // ---------------- FINAL SEARCHABLE SKILLS ----------------
 
-      /* -------- Collaboration Metrics -------- */
-
-      console.log("🤝 Running collaboration metrics...");
-
-      const collaborationMetrics =
-        await getCollaborationMetrics(
-          githubUsername,
-          githubToken
-        );
-
-      /* -------- Project Quality -------- */
-
-      console.log("🧪 Running project quality metrics...");
-
-      const qualityMetrics =
-        await getProjectQualityMetrics(
-          repos,
-          githubToken
-        );
-
-      /* -------- Raw Metrics Object -------- */
+      const skills = [
+        ...languageSkills,
+        ...frameworks,
+        ...deploymentSkills
+      ];
+      const uniqueSkills = [...new Set(skills)];
 
       const rawMetrics = {
         repoCount,
@@ -123,9 +141,10 @@ const worker = new Worker(
         developerType,
         techStack,
         frameworks,
+        skills: uniqueSkills,
         ...activityMetrics,
         ...collaborationMetrics,
-        qualityIndicators: qualityMetrics
+        qualityIndicators: filteredQualityMetrics
       };
 
       /* -------- Scoring Engine -------- */
@@ -136,6 +155,12 @@ const worker = new Worker(
 
       /* -------- Save Result -------- */
 
+      //get badges
+      // console.log("Badge calculation started..");
+      const badges = computeBadges(rawMetrics);
+      // console.log("Badge calculation ended..", badges);
+
+      // save final result
       await Analysis.findOneAndUpdate(
         { githubId },
         {
@@ -143,6 +168,8 @@ const worker = new Worker(
           rawMetrics,
           overallScore: scoreData.finalScore,
           scoreBreakdown: scoreData,
+          badges,
+          leetcodeMetrics,
           updatedAt: new Date()
         }
       );
@@ -296,6 +323,8 @@ await Analysis.findOneAndUpdate(
     updatedAt: new Date()
   }
 );
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      console.log(`Worker completed in ${totalTime}s`);
       return rawMetrics;
     } catch (error) {
       console.error("Analysis failed:", error.message);

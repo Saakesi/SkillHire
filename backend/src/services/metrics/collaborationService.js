@@ -5,59 +5,32 @@ export const getCollaborationMetrics = async (
   githubToken
 ) => {
 
-  console.log("🤝 Fetching collaboration metrics...");
-
   const headers = {
     Authorization: `Bearer ${githubToken}`
   };
 
   try {
 
-    const prSearch = await axios.get(
-      "https://api.github.com/search/issues",
-      {
+    const queries = [
+      `author:${githubUsername} type:pr`,
+      `author:${githubUsername} type:pr is:merged`,
+      `author:${githubUsername} type:pr -user:${githubUsername}`,
+      `author:${githubUsername} type:issue`
+    ];
+
+    const requests = queries.map(q =>
+      axios.get("https://api.github.com/search/issues", {
         headers,
-        params: {
-          q: `author:${githubUsername} type:pr`,
-          per_page: 1
-        }
-      }
+        params: { q, per_page: 1 }
+      })
     );
 
-    const mergedPRSearch = await axios.get(
-      "https://api.github.com/search/issues",
-      {
-        headers,
-        params: {
-          q: `author:${githubUsername} type:pr is:merged`,
-          per_page: 1
-        }
-      }
-    );
-
-    const externalPRSearch = await axios.get(
-      "https://api.github.com/search/issues",
-      {
-        headers,
-        params: {
-          q: `author:${githubUsername} type:pr -user:${githubUsername}`,
-          per_page: 1
-        }
-      }
-    );
-
-    const issueSearch = await axios.get(
-      "https://api.github.com/search/issues",
-      {
-        headers,
-        params: {
-          q: `author:${githubUsername} type:issue`,
-          per_page: 1
-        }
-      }
-    );
-
-    console.log("✅ Collaboration metrics fetched");
+    const [
+      prSearch,
+      mergedPRSearch,
+      externalPRSearch,
+      issueSearch
+    ] = await Promise.all(requests);
 
     return {
       prCount: prSearch.data.total_count,
@@ -66,9 +39,7 @@ export const getCollaborationMetrics = async (
       issueCount: issueSearch.data.total_count
     };
 
-  } catch (err) {
-
-    console.log("⚠️ Collaboration metrics failed");
+  } catch {
 
     return {
       prCount: 0,
