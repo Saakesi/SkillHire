@@ -31,6 +31,12 @@ const rawMetricsSchema = new mongoose.Schema({
     default: []
   },
 
+  skills: {
+    type: [String],
+    default: [],
+    index: true
+  },
+
   // ===== Activity metrics =====
   commitCount6Months: {
     type: Number,
@@ -76,13 +82,55 @@ const rawMetricsSchema = new mongoose.Schema({
 
   // ===== Project Quality =====
   qualityIndicators: {
-    readme: { type: Number, default: 0 },
-    ci: { type: Number, default: 0 },
-    tests: { type: Number, default: 0 },
-    docker: { type: Number, default: 0 },
-    license: { type: Number, default: 0 }
+    type: Map,
+    of: Number,
+    default: {}
   }
 
+}, { _id: false });
+
+const leetcodeSchema = new mongoose.Schema({
+
+  username: String,
+  solved: {
+    total: Number,
+    easy: Number,
+    medium: Number,
+    hard: Number
+  },
+  ranking: Number,
+  reputation: Number,
+  contest: {
+    rating: Number,
+    globalRank: Number,
+    contestsAttended: Number
+  },
+  languages: [
+    {
+      languageName: String,
+      problemsSolved: Number
+    }
+  ],
+  algorithms: {
+    advanced: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ],
+    intermediate: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ],
+    fundamental: [
+      {
+        tagName: String,
+        problemsSolved: Number
+      }
+    ]
+  }
 }, { _id: false });
 
 const analysisSchema = new mongoose.Schema({
@@ -103,6 +151,7 @@ const analysisSchema = new mongoose.Schema({
     default: [],
     index: true
   },
+  leetcodeMetrics: leetcodeSchema,
   error: { type: String, default: null }
 }, { timestamps: true });
 

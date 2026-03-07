@@ -39,15 +39,16 @@ export const analyzeProfile = async (req, res) => {
     },
     { upsert: true, new: true }
   );
-  
-  
+
+
 
   const job = await analyzeProfileQueue.add(
     "analyze",
     {
       githubId: user.githubId,
       githubUsername: profile.username,
-      githubToken: profile.githubAccessToken
+      githubToken: profile.githubAccessToken,
+      leetcodeUsername: profile.leetcodeUsername
     },
     {
       attempts: 3,
@@ -84,6 +85,7 @@ export const getAnalyzeStatus = async (req, res) => {
       status: analysis.status,   // queued | processing | completed | failed
       rawMetrics: analysis.rawMetrics,
       badges: analysis.badges,
+      leetcodeMetrics: analysis.leetcodeMetrics,
       updatedAt: analysis.updatedAt
     });
 

@@ -13,6 +13,7 @@ import { getActivityMetrics } from "../services/metrics/activityService.js";
 import { getCollaborationMetrics } from "../services/metrics/collaborationService.js";
 import { getProjectQualityMetrics } from "../services/metrics/projectQualityService.js";
 import { computeBadges } from "../services/badges/badgeService.js";
+import { analyzeLeetcode } from "../services/leetcode/leetcodeService.js";
 
 dotenv.config();
 await mongoose.connect(process.env.MONGO_URI);
@@ -28,7 +29,7 @@ const worker = new Worker(
   async job => {
     const startTime = Date.now();
     console.log(`Job ${job.id} started`);
-    const { githubId, githubUsername, githubToken } = job.data;
+    const { githubId, githubUsername, githubToken, leetcodeUsername } = job.data;
 
     try {
       // mark as processing
@@ -64,13 +65,15 @@ const worker = new Worker(
         frameworks,
         activityMetrics,
         collaborationMetrics,
-        qualityMetrics
+        qualityMetrics,
+        leetcodeMetrics
       ] = await Promise.all([
         computeLanguageMetrics(repos, githubToken),
         detectFrameworks(repos, githubToken),
         getActivityMetrics(repos, githubToken, githubUsername),
         getCollaborationMetrics(githubUsername, githubToken),
-        getProjectQualityMetrics(repos, githubToken)
+        getProjectQualityMetrics(repos, githubToken),
+        leetcodeUsername ? analyzeLeetcode(leetcodeUsername) : null
       ]);
 
       // console.timeEnd("parallelMetrics");
@@ -81,52 +84,41 @@ const worker = new Worker(
         languageEntropy
       } = languageData;
 
-
-      // console.time("computeLanguageMetrics");
-      // const {
-      //   languagePercentages,
-      //   primaryLanguage,
-      //   languageEntropy
-      // } = await computeLanguageMetrics(repos, githubToken);
-      // console.timeEnd("computeLanguageMetrics");
-
       //Stack classification
       // console.time("getStack");
       const { developerType, techStack } = getStack(languagePercentages);
       // console.timeEnd("getStack");
 
-      //get frameworks
-      // console.time("detectFrameworks");
-      // const frameworks = await detectFrameworks(repos, githubToken);
-      // console.timeEnd("detectFrameworks");
 
-      // activity
-      // console.log("Running activity metrics...");
-      // console.time("getActivityMetrics");
-      // const activityMetrics = await getActivityMetrics(
-      //   repos,
-      //   githubToken,
-      //   githubUsername
-      // );
-      // console.timeEnd("getActivityMetrics");
+      const filteredQualityMetrics = Object.fromEntries(
+        Object.entries(qualityMetrics).filter(([_, value]) => value > 0)
+      );
 
-      // collaboration
-      // console.log("Running collaboration metrics...");
-      // console.time("getCollaborationMetrics");
-      // const collaborationMetrics = await getCollaborationMetrics(
-      //   githubUsername,
-      //   githubToken
-      // );
-      // console.timeEnd("getCollaborationMetrics");
+      // ---------------- DEPLOYMENT SKILLS ----------------
+      const deploymentMap = {
+        vercel: "Vercel",
+        render: "Render",
+        aws: "AWS",
+        firebase: "Firebase",
+        netlify: "Netlify",
+        kubernetes: "Kubernetes"
+      };
+      const deploymentSkills = Object.keys(deploymentMap)
+        .filter(key => qualityMetrics[key] > 0)
+        .map(key => deploymentMap[key]);
 
-      // project quality
-      // console.log("Running project quality metrics...");
-      // console.time("getProjectQualityMetrics");
-      // const qualityMetrics = await getProjectQualityMetrics(
-      //   repos,
-      //   githubToken
-      // );
-      // console.timeEnd("getProjectQualityMetrics");
+      // ---------------- LANGUAGE SKILLS ----------------
+
+      const languageSkills = Object.keys(languagePercentages);
+
+      // ---------------- FINAL SEARCHABLE SKILLS ----------------
+
+      const skills = [
+        ...languageSkills,
+        ...frameworks,
+        ...deploymentSkills
+      ];
+      const uniqueSkills = [...new Set(skills)];
 
       const rawMetrics = {
         repoCount,
@@ -138,9 +130,10 @@ const worker = new Worker(
         developerType,
         techStack,
         frameworks,
+        skills: uniqueSkills,
         ...activityMetrics,
         ...collaborationMetrics,
-        qualityIndicators: qualityMetrics
+        qualityIndicators: filteredQualityMetrics
       };
 
       //get badges
@@ -155,6 +148,7 @@ const worker = new Worker(
           status: "completed",
           rawMetrics,
           badges,
+          leetcodeMetrics,
           updatedAt: new Date()
         }
       );

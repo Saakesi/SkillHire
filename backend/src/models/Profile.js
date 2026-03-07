@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const ProfileSchema = new mongoose.Schema({
   githubId: { type: Number, required: true, unique: true },
-  name: {type: String},
+  name: { type: String },
   username: { type: String, required: true, unique: true, sparse: true },
   avatarUrl: { type: String },
   bio: { type: String, default: "" },
@@ -17,6 +17,11 @@ const ProfileSchema = new mongoose.Schema({
   githubAccessToken: {
     type: String,
     select: false
+  },
+  leetcodeUsername: {
+    type: String,
+    default: null,
+    index: true
   }
 });
 
