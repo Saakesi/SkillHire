@@ -3,6 +3,7 @@ import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 
 import Analysis from "../models/Analysis.js";
+import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
 
 export const analyzeProfile = async (req, res) => {
   const token = req.cookies.auth;
@@ -65,27 +66,48 @@ export const getAnalyzeStatus = async (req, res) => {
   try {
     const { username } = req.params;
 
-    // 1️⃣ find profile
     const profile = await Profile.findOne({ username });
-    if (!profile) {
-      return res.status(404).json({ error: "Profile not found" });
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+
+    const analysis = await Analysis.findOne({ githubId: profile.githubId });
+    if (!analysis) return res.json({ status: "not started" });
+
+    if (!analysis.rawMetrics || Object.keys(analysis.rawMetrics).length === 0) {
+      return res.json({
+        status: analysis.status,
+        overallScore: 0,
+        scoreBreakdown: {},
+        rawMetrics: {},
+        updatedAt: analysis.updatedAt
+      });
     }
 
-    // 2️⃣ find analysis by githubId
-    const analysis = await Analysis.findOne({
-      githubId: profile.githubId
-    });
+    const gitHireScore = computeGitHireScore(analysis.rawMetrics);
 
-    if (!analysis) {
-      return res.json({ status: "not started" });
+    const scoreBreakdown = {
+      normalizedScores: gitHireScore.normalizedScores,
+      weightedScore: gitHireScore.weightedScore,
+      penalty: gitHireScore.penalty,
+      trustScore: gitHireScore.trustScore,
+      confidenceScore: gitHireScore.confidenceScore
+    };
+
+    const overallScore = gitHireScore.finalScore;
+
+    // Optional: save computed breakdown back to DB
+    if (!analysis.scoreBreakdown || Object.keys(analysis.scoreBreakdown).length === 0) {
+      analysis.scoreBreakdown = scoreBreakdown;
+      analysis.overallScore = overallScore;
+      await analysis.save();
     }
 
     return res.json({
-      status: analysis.status,   // queued | processing | completed | failed
+      status: analysis.status,
+      overallScore,
+      scoreBreakdown,
       rawMetrics: analysis.rawMetrics,
       updatedAt: analysis.updatedAt
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

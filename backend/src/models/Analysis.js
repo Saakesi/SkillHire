@@ -89,11 +89,19 @@ const analysisSchema = new mongoose.Schema({
   },
   rawMetrics: rawMetricsSchema,
   overallScore: {
-    type: Number,
-    default: null,
-    index: true
-  },
-  // result: { type: Object },
+  type: Number,
+  default: null,
+  index: true
+},
+
+scoreBreakdown: {
+  normalizedScores: { type: Object },
+  weightedScore: Number,
+  penalty: Number,
+  trustScore: Number,
+  confidenceScore: Number,
+  finalScore: Number
+},
   error: { type: String, default: null }
 }, { timestamps: true });
 
