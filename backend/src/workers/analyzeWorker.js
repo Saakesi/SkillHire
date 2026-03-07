@@ -128,6 +128,36 @@ const worker = new Worker(
       // );
       // console.timeEnd("getProjectQualityMetrics");
 
+      const filteredQualityMetrics = Object.fromEntries(
+        Object.entries(qualityMetrics).filter(([_, value]) => value > 0)
+      );
+
+      // ---------------- DEPLOYMENT SKILLS ----------------
+      const deploymentMap = {
+        vercel: "Vercel",
+        render: "Render",
+        aws: "AWS",
+        firebase: "Firebase",
+        netlify: "Netlify",
+        kubernetes: "Kubernetes"
+      };
+      const deploymentSkills = Object.keys(deploymentMap)
+        .filter(key => qualityMetrics[key] > 0)
+        .map(key => deploymentMap[key]);
+
+      // ---------------- LANGUAGE SKILLS ----------------
+
+      const languageSkills = Object.keys(languagePercentages);
+
+      // ---------------- FINAL SEARCHABLE SKILLS ----------------
+
+      const skills = [
+        ...languageSkills,
+        ...frameworks,
+        ...deploymentSkills
+      ];
+      const uniqueSkills = [...new Set(skills)];
+
       const rawMetrics = {
         repoCount,
         totalStars,
@@ -138,9 +168,10 @@ const worker = new Worker(
         developerType,
         techStack,
         frameworks,
+        skills: uniqueSkills,
         ...activityMetrics,
         ...collaborationMetrics,
-        qualityIndicators: qualityMetrics
+        qualityIndicators: filteredQualityMetrics
       };
 
       //get badges

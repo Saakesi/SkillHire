@@ -31,6 +31,12 @@ const rawMetricsSchema = new mongoose.Schema({
     default: []
   },
 
+  skills: {
+    type: [String],
+    default: [],
+    index: true
+  },
+
   // ===== Activity metrics =====
   commitCount6Months: {
     type: Number,
@@ -76,11 +82,9 @@ const rawMetricsSchema = new mongoose.Schema({
 
   // ===== Project Quality =====
   qualityIndicators: {
-    readme: { type: Number, default: 0 },
-    ci: { type: Number, default: 0 },
-    tests: { type: Number, default: 0 },
-    docker: { type: Number, default: 0 },
-    license: { type: Number, default: 0 }
+    type: Map,
+    of: Number,
+    default: {}
   }
 
 }, { _id: false });

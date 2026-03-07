@@ -12,7 +12,8 @@ import {
     Activity,
     ExternalLink,
     AlertCircle,
-    PlayCircle
+    PlayCircle,
+    Pencil
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Layout } from "../components/layout/Layout";
@@ -38,6 +39,10 @@ export const DeveloperDashboard = () => {
     const [loading, setLoading] = useState(false);
     const [polling, setPolling] = useState(false);
 
+    const [editingBio, setEditingBio] = useState(false);
+    const [bio, setBio] = useState(profile.bio || "");
+    const [savingBio, setSavingBio] = useState(false);
+
     if (!profile) return <PageLoader />;
 
     // ---------------- FETCH EXISTING ANALYSIS ----------------
@@ -47,7 +52,6 @@ export const DeveloperDashboard = () => {
 
         const fetchAnalysis = async () => {
             try {
-
                 const res = await axios.get(`${API}/api/analyze/status/${username}`);
 
                 if (res.data?.rawMetrics) {
@@ -65,27 +69,38 @@ export const DeveloperDashboard = () => {
                 console.error(err);
             }
         };
-
         fetchAnalysis();
-
     }, [username]);
 
-    // ---------------- ANALYZE BUTTON ----------------
-
-    const handleAnalyze = async () => {
-
+    //---------------UPDATE BIO---------------
+    const saveBio = async () => {
         try {
+            setSavingBio(true);
+            await axios.put(
+                `${API}/api/profile/update`,
+                { bio },
+                { withCredentials: true }
+            );
+            setEditingBio(false);
 
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingBio(false);
+        }
+
+    };
+
+    // ---------------- ANALYZE BUTTON ----------------
+    const handleAnalyze = async () => {
+        try {
             setLoading(true);
-
             await axios.post(
                 `${API}/api/analyze`,
                 {},
                 { withCredentials: true }
             );
-
             setPolling(true);
-
         } catch (err) {
             console.error(err);
         } finally {
@@ -94,21 +109,15 @@ export const DeveloperDashboard = () => {
     };
 
     // ---------------- POLLING ----------------
-
     useEffect(() => {
-
         if (!polling) return;
-
         const interval = setInterval(async () => {
-
             const res = await axios.get(`${API}/api/analyze/status/${username}`, {
                 withCredentials: true
             });
-
             setStatus(res.data.status);
 
             if (res.data.status === "completed") {
-
                 setMetrics(res.data.rawMetrics);
                 setBadges(res.data.badges || []);
                 setUpdatedAt(res.data.updatedAt);
@@ -116,24 +125,16 @@ export const DeveloperDashboard = () => {
                 setPolling(false);
                 clearInterval(interval);
             }
-
         }, 2000);
-
         return () => clearInterval(interval);
-
     }, [polling]);
 
     // ---------------- MONTHLY COMMITS ----------------
-
     const monthlyCommits = useMemo(() => {
-
         const months = [];
         const now = new Date();
-
         for (let i = 5; i >= 0; i--) {
-
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-
             const key = `${d.getFullYear()}-${String(
                 d.getMonth() + 1
             ).padStart(2, "0")}`;
@@ -143,19 +144,14 @@ export const DeveloperDashboard = () => {
                 commits: metrics?.monthlyCommits?.[key] || 0
             });
         }
-
         return months;
-
     }, [metrics]);
 
     const maxCommits = Math.max(...monthlyCommits.map(m => m.commits), 1);
 
     // ---------------- TOP LANGUAGES ----------------
-
     const topLanguages = useMemo(() => {
-
         if (!metrics?.languagePercentages) return [];
-
         return Object.entries(metrics.languagePercentages)
             .map(([name, value]) => ({
                 name,
@@ -163,7 +159,6 @@ export const DeveloperDashboard = () => {
             }))
             .sort((a, b) => b.percent - a.percent)
             .slice(0, 5);
-
     }, [metrics]);
 
     // ---------------- TECH STACK ----------------
@@ -176,7 +171,12 @@ export const DeveloperDashboard = () => {
         express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
         html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
         css: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
-        ejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg"
+        ejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
+        vercel: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg",
+        aws: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg",
+        firebase: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg",
+        kubernetes: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
+        netlify: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/netlify/netlify-original.svg",
     };
     const languageColors = {
         javascript: "#f7df1e",
@@ -198,42 +198,29 @@ export const DeveloperDashboard = () => {
         css: "#264de4",
     };
 
-    const techStack = [
-        ...(Object.keys(metrics?.languagePercentages || {})),
-        ...(metrics?.frameworks || [])
-    ];
+    const techStack = metrics?.skills || [];
 
     const publicProfileUrl = `${window.location.origin}/profile/${username}`;
 
     return (
-
-        <Layout showFooter={false}>
-
+        <Layout showFooter={true}>
             <div className="min-h-screen bg-background">
 
                 {/* HEADER */}
-
                 <div className="gradient-bg-subtle py-10 sm:py-12">
-
                     <div className="max-w-7xl mx-auto px-4 sm:px-6">
-
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-
                                 <Avatar
                                     src={profile.avatarUrl}
                                     name={profile.name || profile.username}
                                     size="xl"
                                     className="sm:size-2xl"
                                 />
-
                                 <div>
-
                                     <h1 className="text-2xl sm:text-3xl font-bold">
                                         {profile.name || profile.username}
                                     </h1>
-
                                     <a
                                         href={`https://github.com/${profile.username}`}
                                         target="_blank"
@@ -243,11 +230,63 @@ export const DeveloperDashboard = () => {
                                         @{profile.username}
                                         <ExternalLink className="w-3 h-3" />
                                     </a>
+                                    <div className="flex items-start gap-2 mt-1">
 
-                                    <p className="text-muted-foreground mt-1">
-                                        {profile.bio}
-                                    </p>
+                                        {!editingBio ? (
 
+                                            <>
+                                                <p className="text-muted-foreground">
+                                                    {bio || "Add a short bio about yourself."}
+                                                </p>
+
+                                                <button
+                                                    onClick={() => setEditingBio(true)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                            </>
+
+                                        ) : (
+
+                                            <div className="flex flex-col gap-2 w-full">
+
+                                                <textarea
+                                                    value={bio}
+                                                    onChange={(e) => setBio(e.target.value)}
+                                                    className="w-full border rounded-md p-2 text-sm bg-background"
+                                                    rows={3}
+                                                    placeholder="Write something about yourself..."
+                                                />
+
+                                                <div className="flex gap-2">
+
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={saveBio}
+                                                        disabled={savingBio}
+                                                    >
+                                                        {savingBio ? "Saving..." : "Save"}
+                                                    </Button>
+
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setEditingBio(false);
+                                                            setBio(profile.bio || "");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+
+                                                </div>
+
+                                            </div>
+
+                                        )}
+
+                                    </div>
                                     {metrics && (
 
                                         <div className="flex flex-wrap gap-3 mt-3">
@@ -262,7 +301,6 @@ export const DeveloperDashboard = () => {
 
                                         </div>
                                     )}
-
                                 </div>
                             </div>
 
@@ -337,7 +375,8 @@ export const DeveloperDashboard = () => {
 
                                             {monthlyCommits.map((m, i) => {
 
-                                                const height = Math.max((m.commits / maxCommits) * 180, 10);
+                                                const height =
+                                                    m.commits === 0 ? 0 : Math.max((m.commits / maxCommits) * 180, 10);
 
                                                 return (
                                                     <div key={i} className="flex-1 min-w-[40px] flex flex-col items-center">
@@ -468,10 +507,12 @@ export const DeveloperDashboard = () => {
                                                         className="flex items-center gap-2 px-2 sm:px-3 py-1 border border-border rounded-lg text-xs sm:text-sm hover:border-primary/40 hover:scale-105 transition"
                                                     >
 
-                                                        <img
-                                                            src={techIcons[key]}
-                                                            className="w-4 h-4"
-                                                        />
+                                                        {techIcons[key] && (
+                                                            <img
+                                                                src={techIcons[key]}
+                                                                className="w-4 h-4"
+                                                            />
+                                                        )}
 
                                                         <span>{skill}</span>
 
