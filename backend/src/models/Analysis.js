@@ -135,6 +135,7 @@ const leetcodeSchema = new mongoose.Schema({
 
 const analysisSchema = new mongoose.Schema({
   githubId: { type: Number, required: true, index: true },
+  username: { type: String, index: true },
   status: {
     type: String,
     enum: ["queued", "processing", "completed", "failed"],
@@ -146,6 +147,7 @@ const analysisSchema = new mongoose.Schema({
     default: null,
     index: true
   },
+  finalScore: Number,
 
   scoreBreakdown: {
     normalizedScores: { type: Object },
@@ -160,8 +162,14 @@ const analysisSchema = new mongoose.Schema({
     default: [],
     index: true
   },
+  leetcodeScore: {
+  type: Number,
+  default: 0
+  },
   leetcodeMetrics: leetcodeSchema,
   error: { type: String, default: null }
 }, { timestamps: true });
+
+analysisSchema.index({ overallScore: -1 });
 
 export default mongoose.model("Analysis", analysisSchema);

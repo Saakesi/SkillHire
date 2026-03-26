@@ -6,6 +6,7 @@ import authRoutes from "./src/routes/authRoutes.js";
 import profileRoutes from "./src/routes/profileRoutes.js";
 import mongoose from "mongoose";
 import analyzeRoutes from "./src/routes/analyzeRoutes.js";
+import rankingroutes from "./src/routes/rankingRoutes.js";
 
 console.log("BACKEND STARTED FROM:", process.cwd());
 
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/analyze", analyzeRoutes);
+app.use("/api/ranking",rankingroutes);
 
 app.get('/', (req, res)=>{
   res.send("Backend is Working!");
