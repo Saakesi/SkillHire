@@ -31,9 +31,36 @@ const TECH_ICONS = {
     javascript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
     typescript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
     python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+    java: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+    cpp: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
+    c: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg",
+    csharp: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg",
+    swift: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg",
+    kotlin: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg",
+    ruby: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg",
+    scala: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/scala/scala-original.svg",
+    dart: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg",
+    php: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg",
     react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
     docker: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg",
     go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original-wordmark.svg",
+    rust: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg",
+    mongodb: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
+    postgresql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg",
+    redis: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
+    aws: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg",
+    firebase: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg",
+    kubernetes: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
+};
+
+const LC_LANG_KEY = (name) => {
+    const map = {
+        "python3": "python", "python2": "python",
+        "c++": "cpp", "c#": "csharp",
+        "golang": "go",
+    };
+    const lower = name.toLowerCase();
+    return map[lower] ?? lower;
 };
 
 function ScoreCircle({ score }) {
@@ -293,6 +320,23 @@ export default function PublicProfile() {
                                                     <span>{skill}</span>
                                                 </div>
                                             ))}
+                                            {/* LeetCode languages — deduplicated against GitHub skills */}
+                                            {(lc?.languages || [])
+                                                .filter(l => l.problemsSolved > 0 &&
+                                                    !(metrics?.skills || []).some(s => s.toLowerCase() === l.languageName.toLowerCase()))
+                                                .sort((a, b) => b.problemsSolved - a.problemsSolved)
+                                                .map(l => {
+                                                    const key = LC_LANG_KEY(l.languageName);
+                                                    return (
+                                                        <div key={`lc-${l.languageName}`}
+                                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
+                                                            {TECH_ICONS[key] && (
+                                                                <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
+                                                            )}
+                                                            <span>{l.languageName}</span>
+                                                        </div>
+                                                    );
+                                                })}
                                         </div>
                                     </CardContent>
                                 </Card>

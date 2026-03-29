@@ -11,7 +11,7 @@ export const getGlobalLeaderboard = async (limit = 100) => {
     return cached;
   }
   console.log("Cache MISS: leaderboard:global — querying DB");
-  return await Analysis.aggregate([
+  const result = await Analysis.aggregate([
     // Step 1: Sort by score
     { $sort: { overallScore: -1 } },
 
@@ -51,7 +51,9 @@ export const getGlobalLeaderboard = async (limit = 100) => {
       }
     }
   ]);
-  await cacheSet(key, result, LEADERBOARD_TTL);
+  if (result.length > 0) {
+    await cacheSet(key, result, LEADERBOARD_TTL);
+  }
   return result;
 };
 

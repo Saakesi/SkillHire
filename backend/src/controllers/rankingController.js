@@ -108,7 +108,8 @@ export const getCategoryRank = async (req, res) => {
 
     // Frontend: React/Vue/Angular frameworks + language diversity
     const frontendFrameworks = ["React", "Vue", "Angular", "Next.js", "Svelte"];
-    const hasFrontend = frameworks?.some(f => frontendFrameworks.includes(f));
+    const hasFrontend = developerType === "Frontend" || developerType === "Full Stack" ||
+      frameworks?.some(f => frontendFrameworks.includes(f));
     if (hasFrontend) {
       categories.frontend = (
         (normalizedScores.frameworkScore * 0.4) +
@@ -119,7 +120,8 @@ export const getCategoryRank = async (req, res) => {
 
     // Backend: developerType or backend frameworks
     const backendFrameworks = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
-    const hasBackend = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
+    const hasBackend = developerType === "Backend" || developerType === "Full Stack" ||
+      frameworks?.some(f => backendFrameworks.includes(f));
     if (hasBackend) {
       categories.backend = (
         (normalizedScores.repoScore * 0.3) +
@@ -149,19 +151,12 @@ export const getCategoryRank = async (req, res) => {
       categories.openSource = openSourceScore;
     }
 
-    // Algorithms/DSA: LeetCode score + hard problems + contest rating
+    // Algorithms/DSA: use the pre-computed leetcodeScore directly (it already
+    // accounts for solved count, hard, medium, contest rating, participation, diversity)
     const leetcodeMetrics = analysis.leetcodeMetrics;
     const totalSolved = leetcodeMetrics?.solved?.total || 0;
     if (totalSolved > 0) {
-      const leetcodeScore = analysis.leetcodeScore || 0;
-      const hard = leetcodeMetrics?.solved?.hard || 0;
-      const contestRating = leetcodeMetrics?.contest?.rating || 0;
-      const hardComponent = Math.min(hard / 50 * 20, 20);
-      const contestComponent = Math.min(contestRating / 2400 * 20, 20);
-      categories.algorithms = Math.min(
-        (leetcodeScore * 0.6) + hardComponent + contestComponent,
-        100
-      );
+      categories.algorithms = analysis.leetcodeScore || 0;
     }
 
     // Determine primary category
@@ -220,8 +215,10 @@ const computeCategoryLeaderboard = async (category) => {
 
     const { frameworks, developerType, externalPRs, prCount } = analysis.rawMetrics || {};
 
-    const hasFrontend = frameworks?.some(f => frontendFrameworks.includes(f));
-    const hasBackend = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
+    const hasFrontend = developerType === "Frontend" || developerType === "Full Stack" ||
+      frameworks?.some(f => frontendFrameworks.includes(f));
+    const hasBackend = developerType === "Backend" || developerType === "Full Stack" ||
+      frameworks?.some(f => backendFrameworks.includes(f));
 
     let score = null;
 
@@ -255,12 +252,7 @@ const computeCategoryLeaderboard = async (category) => {
       const lc = analysis.leetcodeMetrics;
       const totalSolved = lc?.solved?.total || 0;
       if (totalSolved > 0) {
-        const lcScore = analysis.leetcodeScore || 0;
-        const hard = lc?.solved?.hard || 0;
-        const contestRating = lc?.contest?.rating || 0;
-        const hardComponent = Math.min(hard / 50 * 20, 20);
-        const contestComponent = Math.min(contestRating / 2400 * 20, 20);
-        score = Math.min((lcScore * 0.6) + hardComponent + contestComponent, 100);
+        score = analysis.leetcodeScore || 0;
       }
     }
 
@@ -278,8 +270,11 @@ const computeCategoryLeaderboard = async (category) => {
   scored.sort((a, b) => b.categoryScore - a.categoryScore);
   const result = scored.map((user, index) => ({ rank: index + 1, ...user }));
 
-  // Store in cache
-  await cacheSet(cacheKey, result, CATEGORY_TTL);
+  // Only cache non-empty results — empty arrays should not be persisted
+  // so re-analyzed users appear immediately on next request
+  if (result.length > 0) {
+    await cacheSet(cacheKey, result, CATEGORY_TTL);
+  }
   return result;
 };
 

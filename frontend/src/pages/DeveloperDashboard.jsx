@@ -36,6 +36,16 @@ const TECH_ICONS = {
     javascript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
     typescript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
     python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+    java: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+    cpp: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
+    c: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg",
+    csharp: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg",
+    swift: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg",
+    kotlin: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg",
+    ruby: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg",
+    scala: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/scala/scala-original.svg",
+    dart: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg",
+    php: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg",
     react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
     express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
     html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
@@ -50,6 +60,22 @@ const TECH_ICONS = {
     redis: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
     go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original-wordmark.svg",
     rust: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg",
+};
+
+// Normalize LeetCode language names (e.g. "Python3" → "python", "C++" → "cpp")
+const LC_LANG_KEY = (name) => {
+    const map = {
+        "python3": "python", "python2": "python",
+        "c++": "cpp", "c#": "csharp",
+        "golang": "go", "javascript": "javascript",
+        "typescript": "typescript", "kotlin": "kotlin",
+        "swift": "swift", "scala": "scala",
+        "ruby": "ruby", "dart": "dart",
+        "php": "php", "java": "java",
+        "c": "c", "rust": "rust",
+    };
+    const lower = name.toLowerCase();
+    return map[lower] ?? lower;
 };
 
 const SCORE_LABELS = {
@@ -761,10 +787,10 @@ export const DeveloperDashboard = () => {
                                             <CardHeader>
                                                 <CardTitle className="flex items-center justify-between">
                                                     <span className="flex items-center gap-2">
-                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode Score 
                                                     </span>
                                                     <span className="text-sm font-normal text-muted-foreground">
-                                                        Score: <span className="font-bold font-mono text-foreground">{lcScore}</span>/100
+                                                        <span>: </span><span className="font-bold font-mono text-foreground">{lcScore}</span>/100
                                                     </span>
                                                 </CardTitle>
                                             </CardHeader>
@@ -894,6 +920,23 @@ export const DeveloperDashboard = () => {
                                                         </div>
                                                     );
                                                 })}
+                                                {/* LeetCode languages — deduplicated against GitHub skills */}
+                                                {(lc?.languages || [])
+                                                    .filter(l => l.problemsSolved > 0 &&
+                                                        !(metrics.skills || []).some(s => s.toLowerCase() === l.languageName.toLowerCase()))
+                                                    .sort((a, b) => b.problemsSolved - a.problemsSolved)
+                                                    .map(l => {
+                                                        const key = LC_LANG_KEY(l.languageName);
+                                                        return (
+                                                            <div key={`lc-${l.languageName}`}
+                                                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs hover:border-primary/40 transition-colors">
+                                                                {TECH_ICONS[key] && (
+                                                                    <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
+                                                                )}
+                                                                <span>{l.languageName}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                             </div>
                                         </CardContent>
                                     </Card>
