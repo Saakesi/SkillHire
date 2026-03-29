@@ -2,10 +2,10 @@ import Analysis from "../../models/Analysis.js";
 
 export const getGlobalLeaderboard = async (limit = 100) => {
   return await Analysis.aggregate([
-    // 🔥 Step 1: Sort by score
+    // Step 1: Sort by score
     { $sort: { overallScore: -1 } },
 
-    // 🔥 Step 2: Add rank
+    // Step 2: Add rank
     {
       $setWindowFields: {
         sortBy: { overallScore: -1 },
@@ -15,10 +15,10 @@ export const getGlobalLeaderboard = async (limit = 100) => {
       }
     },
 
-    // 🔥 Step 3: Limit AFTER rank (important)
+    // Step 3: Limit AFTER rank (important)
     { $limit: limit },
 
-    // 🔥 Step 4: Join profile
+    // Step 4: Join profile
     {
       $lookup: {
         from: "profiles",
@@ -30,7 +30,7 @@ export const getGlobalLeaderboard = async (limit = 100) => {
 
     { $unwind: "$profile" },
 
-    // 🔥 Step 5: Final shape
+    // Step 5: Final shape
     {
       $project: {
         githubId: 1,
@@ -46,7 +46,7 @@ export const getGlobalLeaderboard = async (limit = 100) => {
 export const getTop10Leaderboard = async () => {
   return await Analysis.aggregate([
     
-    // 🔥 Ensure score exists
+    // Ensure score exists
     {
       $addFields: {
         gitHireScore: {
@@ -55,10 +55,10 @@ export const getTop10Leaderboard = async () => {
       }
     },
 
-    // 🔥 Sort globally
+    // Sort globally
     { $sort: { gitHireScore: -1 } },
 
-    // 🔥 Compute GLOBAL rank
+    // Compute GLOBAL rank
     {
       $setWindowFields: {
         sortBy: { gitHireScore: -1 },
@@ -68,10 +68,10 @@ export const getTop10Leaderboard = async () => {
       }
     },
 
-    // 🔥 NOW take top 10
+    // NOW take top 10
     { $limit: 10 },
 
-    // 🔥 Join profile
+    // Join profile
     {
       $lookup: {
         from: "profiles",
@@ -83,7 +83,7 @@ export const getTop10Leaderboard = async () => {
 
     { $unwind: "$profile" },
 
-    // 🔥 Final output
+    // Final output
     {
       $project: {
         _id: 0,

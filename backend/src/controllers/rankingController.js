@@ -146,6 +146,21 @@ export const getCategoryRank = async (req, res) => {
       categories.openSource = openSourceScore;
     }
 
+    // Algorithms/DSA: LeetCode score + hard problems + contest rating
+    const leetcodeMetrics = analysis.leetcodeMetrics;
+    const totalSolved = leetcodeMetrics?.solved?.total || 0;
+    if (totalSolved > 0) {
+      const leetcodeScore = analysis.leetcodeScore || 0;
+      const hard = leetcodeMetrics?.solved?.hard || 0;
+      const contestRating = leetcodeMetrics?.contest?.rating || 0;
+      const hardComponent = Math.min(hard / 50 * 20, 20);
+      const contestComponent = Math.min(contestRating / 2400 * 20, 20);
+      categories.algorithms = Math.min(
+        (leetcodeScore * 0.6) + hardComponent + contestComponent,
+        100
+      );
+    }
+
     // Determine primary category
     const primaryCategory = Object.keys(categories).length
       ? Object.entries(categories).sort((a, b) => b[1] - a[1])[0][0]
@@ -209,6 +224,20 @@ const computeCategoryLeaderboard = async (category) => {
         (normalizedScores.forkScore * 0.3) +
         ((externalPRs > 0 ? Math.min(externalPRs * 10, 100) : 0) * 0.3)
       );
+    } else if (category === "algorithms") {
+      const leetcodeMetrics = analysis.leetcodeMetrics;
+      const totalSolved = leetcodeMetrics?.solved?.total || 0;
+      if (totalSolved > 0) {
+        const leetcodeScore = analysis.leetcodeScore || 0;
+        const hard = leetcodeMetrics?.solved?.hard || 0;
+        const contestRating = leetcodeMetrics?.contest?.rating || 0;
+        const hardComponent = Math.min(hard / 50 * 20, 20);
+        const contestComponent = Math.min(contestRating / 2400 * 20, 20);
+        score = Math.min(
+          (leetcodeScore * 0.6) + hardComponent + contestComponent,
+          100
+        );
+      }
     }
 
     if (score !== null) {
