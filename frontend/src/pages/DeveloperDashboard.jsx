@@ -57,22 +57,34 @@ const TECH_ICONS = {
     docker: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg",
     mongodb: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
     postgresql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg",
+    mysql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg",
     redis: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
     go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original-wordmark.svg",
     rust: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg",
+    nodejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
+    nextjs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg",
+    vuejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg",
+    angular: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/angularjs/angularjs-original.svg",
+    django: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg",
+    flask: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg",
+    nestjs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nestjs/nestjs-plain.svg",
+    graphql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg",
+    bash: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bash/bash-original.svg",
+    lua: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/lua/lua-original.svg",
+    r: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/r/r-original.svg",
 };
 
-// Normalize LeetCode language names (e.g. "Python3" → "python", "C++" → "cpp")
-const LC_LANG_KEY = (name) => {
+// Normalize any skill/language name → TECH_ICONS key
+const SKILL_ICON_KEY = (name) => {
     const map = {
-        "python3": "python", "python2": "python",
         "c++": "cpp", "c#": "csharp",
-        "golang": "go", "javascript": "javascript",
-        "typescript": "typescript", "kotlin": "kotlin",
-        "swift": "swift", "scala": "scala",
-        "ruby": "ruby", "dart": "dart",
-        "php": "php", "java": "java",
-        "c": "c", "rust": "rust",
+        "python3": "python", "python2": "python",
+        "golang": "go",
+        "node.js": "nodejs", "nodejs": "nodejs",
+        "next.js": "nextjs",
+        "vue": "vuejs", "vue.js": "vuejs",
+        "angular": "angular", "angularjs": "angular",
+        "nestjs": "nestjs", "nest.js": "nestjs",
     };
     const lower = name.toLowerCase();
     return map[lower] ?? lower;
@@ -801,7 +813,7 @@ export const DeveloperDashboard = () => {
                                             <CardHeader>
                                                 <CardTitle className="flex items-center justify-between">
                                                     <span className="flex items-center gap-2">
-                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode Score 
+                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode Score
                                                     </span>
                                                     <span className="text-sm font-normal text-muted-foreground">
                                                         <span>: </span><span className="font-bold font-mono text-foreground">{lcScore}</span>/100
@@ -922,10 +934,18 @@ export const DeveloperDashboard = () => {
                                         </CardHeader>
                                         <CardContent>
                                             <div className="flex flex-wrap gap-2">
-                                                {(metrics.skills || []).map(skill => {
-                                                    const key = skill.toLowerCase();
+                                                {(() => {
+                                                    const seen = new Set();
+                                                    return (metrics.skills || []).filter(skill => {
+                                                        const k = SKILL_ICON_KEY(skill);
+                                                        if (seen.has(k)) return false;
+                                                        seen.add(k);
+                                                        return true;
+                                                    });
+                                                })().map(skill => {
+                                                    const key = SKILL_ICON_KEY(skill);
                                                     return (
-                                                        <div key={skill}
+                                                        <div key={key}
                                                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs hover:border-primary/40 transition-colors">
                                                             {TECH_ICONS[key] && (
                                                                 <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={skill} />
@@ -934,23 +954,24 @@ export const DeveloperDashboard = () => {
                                                         </div>
                                                     );
                                                 })}
-                                                {/* LeetCode languages — deduplicated against GitHub skills */}
-                                                {(lc?.languages || [])
-                                                    .filter(l => l.problemsSolved > 0 &&
-                                                        !(metrics.skills || []).some(s => s.toLowerCase() === l.languageName.toLowerCase()))
-                                                    .sort((a, b) => b.problemsSolved - a.problemsSolved)
-                                                    .map(l => {
-                                                        const key = LC_LANG_KEY(l.languageName);
-                                                        return (
-                                                            <div key={`lc-${l.languageName}`}
-                                                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs hover:border-primary/40 transition-colors">
-                                                                {TECH_ICONS[key] && (
-                                                                    <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
-                                                                )}
-                                                                <span>{l.languageName}</span>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                {/* LeetCode languages — deduplicated against GitHub skills by normalized key */}
+                                                {(() => {
+                                                    const ghKeys = new Set((metrics.skills || []).map(s => SKILL_ICON_KEY(s)));
+                                                    return (lc?.languages || [])
+                                                        .filter(l => l.problemsSolved > 0 && !ghKeys.has(SKILL_ICON_KEY(l.languageName)))
+                                                        .sort((a, b) => b.problemsSolved - a.problemsSolved);
+                                                })().map(l => {
+                                                    const key = SKILL_ICON_KEY(l.languageName);
+                                                    return (
+                                                        <div key={`lc-${l.languageName}`}
+                                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs hover:border-primary/40 transition-colors">
+                                                            {TECH_ICONS[key] && (
+                                                                <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
+                                                            )}
+                                                            <span>{l.languageName}</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </CardContent>
                                     </Card>

@@ -1,10 +1,29 @@
 import { useState, useEffect } from "react";
+import { useRef } from "react";
 
 const API = import.meta.env.VITE_API_URL;
+
 
 export default function CollegeSelect({ value, onChange }) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState([]);
+
+  
+const wrapperRef = useRef(null);
+
+useEffect(() => {
+  function handleClickOutside(event) {
+    if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+      setOptions([]); // close dropdown
+    }
+  }
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
   // debounce effect
   useEffect(() => {
@@ -40,7 +59,8 @@ export default function CollegeSelect({ value, onChange }) {
   }, [query]);
 
   return (
-    <div className="relative">
+
+    <div ref={wrapperRef} className="relative">
       <input
         type="text"
         placeholder="Search your college..."
@@ -56,7 +76,7 @@ focus:outline-none focus:ring-2 focus:ring-primary"
       {options.length > 0 && (
         <div className="absolute bg-popover border border-border 
 text-foreground w-full mt-1 max-h-60 overflow-y-auto 
-z-10 rounded-lg shadow-lg">
+z-50 rounded-lg shadow-lg">
           {options.map((college) => (
             <div
               key={college.id}

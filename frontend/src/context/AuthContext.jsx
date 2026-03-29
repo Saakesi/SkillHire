@@ -27,6 +27,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const me = await authService.getCurrentUser();
+    setUser(me);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -37,6 +42,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         loginWithGitHub,
         logout,
+        refreshUser,
       }}
     >
       {children}

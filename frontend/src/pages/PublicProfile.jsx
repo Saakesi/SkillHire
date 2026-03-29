@@ -42,22 +42,44 @@ const TECH_ICONS = {
     dart: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg",
     php: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg",
     react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
+    express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
+    html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
+    css: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
+    vercel: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg",
     docker: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg",
     go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original-wordmark.svg",
     rust: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg",
     mongodb: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
     postgresql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg",
+    mysql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg",
     redis: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
     aws: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg",
     firebase: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg",
     kubernetes: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
+    nodejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
+    nextjs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nextjs/nextjs-original.svg",
+    vuejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vuejs/vuejs-original.svg",
+    angular: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/angularjs/angularjs-original.svg",
+    django: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg",
+    flask: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg",
+    nestjs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nestjs/nestjs-plain.svg",
+    graphql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/graphql/graphql-plain.svg",
+    bash: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bash/bash-original.svg",
+    lua: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/lua/lua-original.svg",
+    r: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/r/r-original.svg",
 };
 
-const LC_LANG_KEY = (name) => {
+// Normalize any skill/language name → TECH_ICONS key
+const SKILL_ICON_KEY = (name) => {
     const map = {
-        "python3": "python", "python2": "python",
         "c++": "cpp", "c#": "csharp",
+        "python3": "python", "python2": "python",
         "golang": "go",
+        "node.js": "nodejs", "nodejs": "nodejs",
+        "next.js": "nextjs",
+        "vue": "vuejs", "vue.js": "vuejs",
+        "angular": "angular", "angularjs": "angular",
+        "nestjs": "nestjs", "nest.js": "nestjs",
     };
     const lower = name.toLowerCase();
     return map[lower] ?? lower;
@@ -146,23 +168,23 @@ export default function PublicProfile() {
     const radarData = useMemo(() => {
         const s = data?.scoreBreakdown?.normalizedScores || {};
         return [
-            { metric: "Activity",    value: Math.round(s.activityScore || 0) },
+            { metric: "Activity", value: Math.round(s.activityScore || 0) },
             { metric: "Consistency", value: Math.round(s.consistencyScore || 0) },
-            { metric: "Collab",      value: Math.round(s.collaborationScore || 0) },
-            { metric: "Reviews",     value: Math.round(s.codeReviewScore || 0) },
-            { metric: "Quality",     value: Math.round(s.projectQualityScore || 0) },
-            { metric: "Languages",   value: Math.round(s.languageDiversityScore || 0) },
-            { metric: "Frameworks",  value: Math.round(s.frameworkScore || 0) },
-            { metric: "Stars",       value: Math.round(s.starScore || 0) },
+            { metric: "Collab", value: Math.round(s.collaborationScore || 0) },
+            { metric: "Reviews", value: Math.round(s.codeReviewScore || 0) },
+            { metric: "Quality", value: Math.round(s.projectQualityScore || 0) },
+            { metric: "Languages", value: Math.round(s.languageDiversityScore || 0) },
+            { metric: "Frameworks", value: Math.round(s.frameworkScore || 0) },
+            { metric: "Stars", value: Math.round(s.starScore || 0) },
         ];
     }, [data]);
 
     const qualityItems = useMemo(() => {
         const q = metrics?.qualityIndicators || {};
         return [
-            { icon: <FileText className="w-3.5 h-3.5" />, label: "README",  count: q.readme  || 0 },
-            { icon: <Zap className="w-3.5 h-3.5" />,      label: "CI/CD",   count: q.ci      || 0 },
-            { icon: <Shield className="w-3.5 h-3.5" />,   label: "Tests",   count: q.tests   || 0 },
+            { icon: <FileText className="w-3.5 h-3.5" />, label: "README", count: q.readme || 0 },
+            { icon: <Zap className="w-3.5 h-3.5" />, label: "CI/CD", count: q.ci || 0 },
+            { icon: <Shield className="w-3.5 h-3.5" />, label: "Tests", count: q.tests || 0 },
             { icon: <BookOpen className="w-3.5 h-3.5" />, label: "License", count: q.license || 0 },
         ];
     }, [metrics]);
@@ -311,32 +333,44 @@ export default function PublicProfile() {
                                     </CardHeader>
                                     <CardContent>
                                         <div className="flex flex-wrap gap-2">
-                                            {(metrics?.skills || []).map(skill => (
-                                                <div key={skill}
-                                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
-                                                    {TECH_ICONS[skill.toLowerCase()] && (
-                                                        <img src={TECH_ICONS[skill.toLowerCase()]} className="w-3.5 h-3.5" alt={skill} />
-                                                    )}
-                                                    <span>{skill}</span>
-                                                </div>
-                                            ))}
-                                            {/* LeetCode languages — deduplicated against GitHub skills */}
-                                            {(lc?.languages || [])
-                                                .filter(l => l.problemsSolved > 0 &&
-                                                    !(metrics?.skills || []).some(s => s.toLowerCase() === l.languageName.toLowerCase()))
-                                                .sort((a, b) => b.problemsSolved - a.problemsSolved)
-                                                .map(l => {
-                                                    const key = LC_LANG_KEY(l.languageName);
-                                                    return (
-                                                        <div key={`lc-${l.languageName}`}
-                                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
-                                                            {TECH_ICONS[key] && (
-                                                                <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
-                                                            )}
-                                                            <span>{l.languageName}</span>
-                                                        </div>
-                                                    );
-                                                })}
+                                            {(() => {
+                                                const seen = new Set();
+                                                return (metrics?.skills || []).filter(skill => {
+                                                    const k = SKILL_ICON_KEY(skill);
+                                                    if (seen.has(k)) return false;
+                                                    seen.add(k);
+                                                    return true;
+                                                });
+                                            })().map(skill => {
+                                                const key = SKILL_ICON_KEY(skill);
+                                                return (
+                                                    <div key={key}
+                                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
+                                                        {TECH_ICONS[key] && (
+                                                            <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={skill} />
+                                                        )}
+                                                        <span>{skill}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                            {/* LeetCode languages — deduplicated by normalized icon key */}
+                                            {(() => {
+                                                const ghKeys = new Set((metrics?.skills || []).map(s => SKILL_ICON_KEY(s)));
+                                                return (lc?.languages || [])
+                                                    .filter(l => l.problemsSolved > 0 && !ghKeys.has(SKILL_ICON_KEY(l.languageName)))
+                                                    .sort((a, b) => b.problemsSolved - a.problemsSolved);
+                                            })().map(l => {
+                                                const key = SKILL_ICON_KEY(l.languageName);
+                                                return (
+                                                    <div key={`lc-${l.languageName}`}
+                                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
+                                                        {TECH_ICONS[key] && (
+                                                            <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
+                                                        )}
+                                                        <span>{l.languageName}</span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -396,10 +430,10 @@ export default function PublicProfile() {
                                 <CardContent className="space-y-3">
                                     <div className="grid grid-cols-4 gap-2">
                                         {[
-                                            { label: "Total",  value: lc.solved.total,  cls: "bg-secondary text-foreground" },
-                                            { label: "Easy",   value: lc.solved.easy,   cls: "bg-green-500/10 border border-green-500/20 text-green-500" },
+                                            { label: "Total", value: lc.solved.total, cls: "bg-secondary text-foreground" },
+                                            { label: "Easy", value: lc.solved.easy, cls: "bg-green-500/10 border border-green-500/20 text-green-500" },
                                             { label: "Medium", value: lc.solved.medium, cls: "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500" },
-                                            { label: "Hard",   value: lc.solved.hard,   cls: "bg-red-500/10 border border-red-500/20 text-red-500" },
+                                            { label: "Hard", value: lc.solved.hard, cls: "bg-red-500/10 border border-red-500/20 text-red-500" },
                                         ].map(d => (
                                             <div key={d.label} className={`text-center py-2.5 rounded-lg ${d.cls}`}>
                                                 <div className="text-lg font-bold font-mono">{d.value}</div>
@@ -457,10 +491,10 @@ export default function PublicProfile() {
                                 <CardContent>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {[
-                                            { label: "Reviews Given",     value: metrics.reviewsGiven  ?? 0, cls: "bg-blue-500/10 border-blue-500/20 text-blue-500" },
-                                            { label: "Approvals",         value: metrics.approvals     ?? 0, cls: "bg-green-500/10 border-green-500/20 text-green-500" },
+                                            { label: "Reviews Given", value: metrics.reviewsGiven ?? 0, cls: "bg-blue-500/10 border-blue-500/20 text-blue-500" },
+                                            { label: "Approvals", value: metrics.approvals ?? 0, cls: "bg-green-500/10 border-green-500/20 text-green-500" },
                                             { label: "Changes Requested", value: metrics.changesRequested ?? 0, cls: "bg-orange-500/10 border-orange-500/20 text-orange-500" },
-                                            { label: "Review Comments",   value: metrics.reviewComments ?? 0, cls: "bg-primary/10 border-primary/20 text-primary" },
+                                            { label: "Review Comments", value: metrics.reviewComments ?? 0, cls: "bg-primary/10 border-primary/20 text-primary" },
                                         ].map(d => (
                                             <div key={d.label} className={`text-center p-3 rounded-xl border ${d.cls}`}>
                                                 <div className={`text-xl font-bold font-mono`}>{d.value}</div>

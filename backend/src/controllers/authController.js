@@ -118,6 +118,15 @@ export const getMe = async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    //recruiter path
+    if (decoded.role === "recruiter") {
+      const profile = await Profile.findById(decoded.profileId)
+        .select("-githubAccessToken -passwordHash");
+      if (!profile) return res.status(404).json({ error: "Profile not found" });
+      return res.json({ role: "recruiter", profile });
+    }
+
+    //developer path
     const profile = await Profile.findOne({ githubId: decoded.githubId })
       .select("-githubAccessToken");
 
@@ -130,7 +139,7 @@ export const getMe = async (req, res) => {
       name: decoded.name,
       username: decoded.username,
       role: decoded.role,
-      profile, // includes avatarUrl
+      profile,
     });
 
   } catch (err) {
