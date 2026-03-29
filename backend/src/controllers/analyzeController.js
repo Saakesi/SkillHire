@@ -3,7 +3,10 @@ import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 
 import Analysis from "../models/Analysis.js";
-import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
+import { connection as redis } from "../redisClient.js";
+
+const ANALYZE_COOLDOWN_SECONDS = Number(process.env.ANALYZE_COOLDOWN_SECONDS || 300);
+const REQUEST_LOCK_SECONDS = Number(process.env.ANALYZE_REQUEST_LOCK_SECONDS || 20);
 
 export const analyzeProfile = async (req, res) => {
   const token = req.cookies.auth;
@@ -29,38 +32,81 @@ export const analyzeProfile = async (req, res) => {
     return res.status(400).json({ error: "GitHub token missing" });
   }
 
-  // create or reset analysis state
-  await Analysis.findOneAndUpdate(
-    { githubId: user.githubId },
-    {
-      githubId: user.githubId,
-      status: "queued",
-      result: null,
-      updatedAt: new Date()
-    },
-    { upsert: true, new: true }
-  );
+  const existing = await Analysis.findOne({ githubId: user.githubId })
+    .select("status updatedAt");
 
+  if (existing && ["queued", "processing"].includes(existing.status)) {
+    const retryAfterSeconds = 30;
+    res.set("Retry-After", String(retryAfterSeconds));
+    return res.status(429).json({
+      error: "Analysis is already in progress. Please wait for it to finish.",
+      status: existing.status,
+      retryAfterSeconds
+    });
+  }
 
-
-  const job = await analyzeProfileQueue.add(
-    "analyze",
-    {
-      githubId: user.githubId,
-      githubUsername: profile.username,
-      githubToken: profile.githubAccessToken,
-      leetcodeUsername: profile.leetcodeUsername
-    },
-    {
-      attempts: 3,
-      backoff: { type: "exponential", delay: 5000 }
+  if (existing?.updatedAt) {
+    const nextAllowedAt = new Date(existing.updatedAt).getTime() + (ANALYZE_COOLDOWN_SECONDS * 1000);
+    const now = Date.now();
+    if (now < nextAllowedAt) {
+      const retryAfterSeconds = Math.ceil((nextAllowedAt - now) / 1000);
+      res.set("Retry-After", String(retryAfterSeconds));
+      return res.status(429).json({
+        error: `Please wait before requesting another analysis.`,
+        retryAfterSeconds,
+        cooldownSeconds: ANALYZE_COOLDOWN_SECONDS
+      });
     }
-  );
+  }
 
-  res.json({
-    message: "Analysis queued",
-    jobId: job.id
-  });
+  const lockKey = `analyze:lock:${user.githubId}`;
+  const lockAcquired = await redis.set(lockKey, "1", "EX", REQUEST_LOCK_SECONDS, "NX");
+  if (!lockAcquired) {
+    const retryAfterSeconds = 10;
+    res.set("Retry-After", String(retryAfterSeconds));
+    return res.status(429).json({
+      error: "Analysis request already received. Please wait a few seconds.",
+      retryAfterSeconds
+    });
+  }
+
+  try {
+    // create or reset analysis state
+    await Analysis.findOneAndUpdate(
+      { githubId: user.githubId },
+      {
+        githubId: user.githubId,
+        status: "queued",
+        result: null,
+        updatedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+
+    const job = await analyzeProfileQueue.add(
+      "analyze",
+      {
+        githubId: user.githubId,
+        githubUsername: profile.username,
+        githubToken: profile.githubAccessToken,
+        leetcodeUsername: profile.leetcodeUsername
+      },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 }
+      }
+    );
+
+    return res.json({
+      message: "Analysis queued",
+      jobId: job.id
+    });
+  } catch (err) {
+    console.error("Failed to enqueue analysis:", err);
+    return res.status(500).json({ error: "Failed to queue analysis" });
+  } finally {
+    await redis.del(lockKey);
+  }
 };
 
 export const getAnalyzeStatus = async (req, res) => {
