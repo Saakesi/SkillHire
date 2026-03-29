@@ -296,6 +296,133 @@ export const getCategoryLeaderboard = async (req, res) => {
   }
 };
 
+// ─── filtered leaderboard (college / batch / branch) ─────────────────────────
+export const getFilteredLeaderboard = async (req, res) => {
+  try {
+    const { college, batch, branch, category = "global" } = req.query;
+
+    if (!college && !batch && !branch) {
+      return res.status(400).json({ error: "At least one filter (college, batch, branch) is required" });
+    }
+
+    // Build profile match from filters
+    const profileMatch = {};
+    if (college)  profileMatch["profile.college.name"] = { $regex: college, $options: "i" };
+    if (branch)   profileMatch["profile.branch"]        = { $regex: branch,  $options: "i" };
+    if (batch)    profileMatch["profile.graduationYear"] = Number(batch);
+
+    const frontendFrameworks = ["React", "Vue", "Angular", "Next.js", "Svelte"];
+    const backendFrameworks  = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
+
+    const pipeline = [
+      { $match: { status: "completed" } },
+      {
+        $lookup: {
+          from: "profiles",
+          localField: "githubId",
+          foreignField: "githubId",
+          as: "profile"
+        }
+      },
+      { $unwind: { path: "$profile", preserveNullAndEmptyArrays: false } },
+      { $match: profileMatch },
+    ];
+
+    const allAnalysis = await Analysis.aggregate(pipeline);
+
+    // Score each by category (reuse same logic as computeCategoryLeaderboard)
+    const scored = [];
+
+    for (const analysis of allAnalysis) {
+      const { normalizedScores } = analysis.scoreBreakdown || {};
+      if (!normalizedScores) continue;
+
+      const { frameworks, developerType, externalPRs, prCount } = analysis.rawMetrics || {};
+      const hasFrontend = developerType === "Frontend" || developerType === "Full Stack" ||
+        frameworks?.some(f => frontendFrameworks.includes(f));
+      const hasBackend = developerType === "Backend" || developerType === "Full Stack" ||
+        frameworks?.some(f => backendFrameworks.includes(f));
+
+      let score = null;
+
+      if (category === "global") {
+        score = analysis.overallScore ?? 0;
+      } else if (category === "frontend" && hasFrontend) {
+        score = (normalizedScores.frameworkScore * 0.4) +
+                (normalizedScores.languageDiversityScore * 0.3) +
+                (normalizedScores.projectQualityScore * 0.3);
+      } else if (category === "backend" && hasBackend) {
+        score = (normalizedScores.repoScore * 0.3) +
+                (normalizedScores.activityScore * 0.3) +
+                (normalizedScores.projectQualityScore * 0.2) +
+                (normalizedScores.consistencyScore * 0.2);
+      } else if (category === "fullStack" && hasFrontend && hasBackend) {
+        score = (normalizedScores.frameworkScore * 0.25) +
+                (normalizedScores.repoScore * 0.25) +
+                (normalizedScores.languageDiversityScore * 0.25) +
+                (normalizedScores.projectQualityScore * 0.25);
+      } else if (category === "openSource" && (prCount > 0 || externalPRs > 0)) {
+        score = (normalizedScores.collaborationScore * 0.4) +
+                (normalizedScores.forkScore * 0.3) +
+                ((externalPRs > 0 ? Math.min(externalPRs * 10, 100) : 0) * 0.3);
+      } else if (category === "algorithms") {
+        const totalSolved = analysis.leetcodeMetrics?.solved?.total || 0;
+        if (totalSolved > 0) score = analysis.leetcodeScore || 0;
+      }
+
+      if (score !== null) {
+        scored.push({
+          githubId:      analysis.githubId,
+          username:      analysis.profile?.username  || "unknown",
+          avatarUrl:     analysis.profile?.avatarUrl || "",
+          college:       analysis.profile?.college?.name || null,
+          branch:        analysis.profile?.branch || null,
+          graduationYear: analysis.profile?.graduationYear || null,
+          categoryScore: category === "global" ? score : parseFloat(score.toFixed(2)),
+          overallScore:  analysis.overallScore
+        });
+      }
+    }
+
+    scored.sort((a, b) => {
+      const key = category === "global" ? "overallScore" : "categoryScore";
+      return b[key] - a[key];
+    });
+
+    const result = scored.map((u, i) => ({ rank: i + 1, ...u }));
+
+    return res.json({
+      category,
+      filters: { college: college || null, batch: batch ? Number(batch) : null, branch: branch || null },
+      totalUsers: result.length,
+      leaderboard: result
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ─── get distinct filter options (colleges, branches, batches) ─────────────────
+export const getFilterOptions = async (req, res) => {
+  try {
+    const profiles = await Profile.find(
+      { $or: [{ "college.name": { $exists: true, $ne: null } }, { branch: { $exists: true, $ne: null } }, { graduationYear: { $exists: true, $ne: null } }] },
+      { "college.name": 1, branch: 1, graduationYear: 1 }
+    ).lean();
+
+    const colleges     = [...new Set(profiles.map(p => p.college?.name).filter(Boolean))].sort();
+    const branches     = [...new Set(profiles.map(p => p.branch).filter(Boolean))].sort();
+    const batches      = [...new Set(profiles.map(p => p.graduationYear).filter(Boolean))].sort((a, b) => b - a);
+
+    return res.json({ colleges, branches, batches });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 // ─── get a specific user's rank in a category ─────────────────────────────────
 export const getUserCategoryRank = async (req, res) => {
   try {

@@ -531,13 +531,27 @@ export const DeveloperDashboard = () => {
                                                 <CollegeSelect value={college} onChange={setCollege} />
 
                                                 {/* Branch */}
-                                                <input
+                                                <select
                                                     value={branch}
                                                     onChange={(e) => setBranch(e.target.value)}
-                                                    placeholder="Branch (e.g. CSE)"
-                                                    className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-
-                                                />
+                                                    className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                                >
+                                                    <option value="">Select Branch</option>
+                                                    <option value="Computer Science Engineering">Computer Science Engineering</option>
+                                                    <option value="Information Technology">Information Technology</option>
+                                                    <option value="Electronics & Communication Engineering">Electronics & Communication Engineering</option>
+                                                    <option value="Electrical Engineering">Electrical Engineering</option>
+                                                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                                    <option value="Civil Engineering">Civil Engineering</option>
+                                                    <option value="Chemical Engineering">Chemical Engineering</option>
+                                                    <option value="Biotechnology">Biotechnology</option>
+                                                    <option value="Data Science">Data Science</option>
+                                                    <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
+                                                    <option value="Cybersecurity">Cybersecurity</option>
+                                                    <option value="Cloud Computing">Cloud Computing</option>
+                                                    <option value="Internet of Things">Internet of Things</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
 
                                                 {/* Graduation Year */}
                                                 <input
