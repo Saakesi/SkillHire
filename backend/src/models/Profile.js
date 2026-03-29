@@ -22,7 +22,26 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     default: null,
     index: true
-  }
+  },
+  college: {
+  id: { type: String },
+  name: { type: String },
+  country: { type: String }
+},
+branch: { type: String },
+graduationYear: { type: Number },
+
+currentCompany: { type: String },
+role: { type: String },
+openToReferral: {
+  type: Boolean,
+  default: false
+},
+
+score: {
+  type: Number,
+  default: 0
+},
 });
 
 // Index username for fast lookup (good for 1M+ users)

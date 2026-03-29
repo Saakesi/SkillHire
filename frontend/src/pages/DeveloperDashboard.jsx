@@ -19,6 +19,7 @@ import { Button } from "../components/ui/Button";
 import { Avatar } from "../components/ui/Avatar";
 import { PageLoader } from "../components/ui/Loader";
 import ProgressBar from "../components/ui/ProgressBar";
+import CollegeSelect from "@/components/ui/CollegeSelect";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -141,7 +142,21 @@ export const DeveloperDashboard = () => {
     const [leetcodeUsername, setLeetcodeUsername] = useState(profile?.leetcodeUsername || "");
     const [savingLeetcode, setSavingLeetcode] = useState(false);
 
+    const [editingCollege, setEditingCollege] = useState(false);
+    const [college, setCollege] = useState(profile?.college || null);
+    const [branch, setBranch] = useState(profile?.branch || "");
+    const [graduationYear, setGraduationYear] = useState(profile?.graduationYear || "");
+    const [savingCollege, setSavingCollege] = useState(false);
+
     const username = profile?.username;
+
+    useEffect(() => {
+        if (profile) {
+            setCollege(profile.college || null);
+            setBranch(profile.branch || "");
+            setGraduationYear(profile.graduationYear || "");
+        }
+    }, [profile]);
 
     // Fetch existing analysis on mount
     useEffect(() => {
@@ -221,6 +236,44 @@ export const DeveloperDashboard = () => {
         }
     };
 
+    const saveCollege = async () => {
+        setSavingCollege(true);
+
+        try {
+            const payload = {
+                branch,
+                graduationYear
+            };
+
+            // only include college if selected
+            if (college) {
+                payload.college = {
+                    id: college.id,
+                    name: college.name,
+                    country: college.country
+                };
+            }
+
+            const res = await axios.put(
+                `${API}/api/profile/update`,
+                payload,
+                { withCredentials: true }
+            );
+
+            // 🔥 update local UI immediately
+            setCollege(res.data.college || null);
+            setBranch(res.data.branch || "");
+            setGraduationYear(res.data.graduationYear || "");
+
+            setEditingCollege(false);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingCollege(false);
+        }
+    };
+
     const copyProfileUrl = () => {
         const url = `${window.location.origin}/profile/${username}`;
         navigator.clipboard.writeText(url);
@@ -258,14 +311,14 @@ export const DeveloperDashboard = () => {
     const radarData = useMemo(() => {
         const s = analysis?.scoreBreakdown?.normalizedScores || {};
         return [
-            { metric: "Activity",    value: Math.round(s.activityScore || 0) },
+            { metric: "Activity", value: Math.round(s.activityScore || 0) },
             { metric: "Consistency", value: Math.round(s.consistencyScore || 0) },
-            { metric: "Collab",      value: Math.round(s.collaborationScore || 0) },
-            { metric: "Reviews",     value: Math.round(s.codeReviewScore || 0) },
-            { metric: "Quality",     value: Math.round(s.projectQualityScore || 0) },
-            { metric: "Languages",   value: Math.round(s.languageDiversityScore || 0) },
-            { metric: "Frameworks",  value: Math.round(s.frameworkScore || 0) },
-            { metric: "Stars",       value: Math.round(s.starScore || 0) },
+            { metric: "Collab", value: Math.round(s.collaborationScore || 0) },
+            { metric: "Reviews", value: Math.round(s.codeReviewScore || 0) },
+            { metric: "Quality", value: Math.round(s.projectQualityScore || 0) },
+            { metric: "Languages", value: Math.round(s.languageDiversityScore || 0) },
+            { metric: "Frameworks", value: Math.round(s.frameworkScore || 0) },
+            { metric: "Stars", value: Math.round(s.starScore || 0) },
         ];
     }, [analysis]);
 
@@ -407,6 +460,87 @@ export const DeveloperDashboard = () => {
                                                     onClick={() => { setEditingLeetcode(false); setLeetcodeUsername(profile.leetcodeUsername || ""); }}>
                                                     Cancel
                                                 </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* 🎓 College Info */}
+                                    <div className="mt-2">
+                                        {!editingCollege ? (
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {college?.name ? (
+                                                    <>
+                                                        <span className="text-sm text-foreground font-medium">
+                                                            {college.name}
+                                                        </span>
+
+                                                        {branch && (
+                                                            <span className="px-2 py-0.5 rounded bg-secondary text-xs">
+                                                                {branch}
+                                                            </span>
+                                                        )}
+
+                                                        {graduationYear && (
+                                                            <span className="px-2 py-0.5 rounded bg-secondary text-xs">
+                                                                {graduationYear}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground italic">
+                                                        Add your college details
+                                                    </span>
+                                                )}
+
+                                                <button
+                                                    onClick={() => setEditingCollege(true)}
+                                                    className="text-muted-foreground hover:text-primary"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-2 max-w-md">
+
+                                                {/* College Search */}
+                                                <CollegeSelect value={college} onChange={setCollege} />
+
+                                                {/* Branch */}
+                                                <input
+                                                    value={branch}
+                                                    onChange={(e) => setBranch(e.target.value)}
+                                                    placeholder="Branch (e.g. CSE)"
+                                                    className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+
+                                                />
+
+                                                {/* Graduation Year */}
+                                                <input
+                                                    type="number"
+                                                    value={graduationYear}
+                                                    onChange={(e) => setGraduationYear(e.target.value)}
+                                                    placeholder="Graduation Year"
+                                                    className="px-3 py-2 rounded-lg bg-background border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                                                />
+
+                                                {/* Buttons */}
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" onClick={saveCollege} disabled={savingCollege}>
+                                                        {savingCollege ? "Saving..." : "Save"}
+                                                    </Button>
+
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setEditingCollege(false);
+                                                            setCollege(profile?.college || null);
+                                                            setBranch(profile?.branch || "");
+                                                            setGraduationYear(profile?.graduationYear || "");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

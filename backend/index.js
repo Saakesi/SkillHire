@@ -7,6 +7,7 @@ import profileRoutes from "./src/routes/profileRoutes.js";
 import mongoose from "mongoose";
 import analyzeRoutes from "./src/routes/analyzeRoutes.js";
 import rankingroutes from "./src/routes/rankingRoutes.js";
+import collegeRoutes from "./src/routes/collegeRoutes.js"
 
 console.log("BACKEND STARTED FROM:", process.cwd());
 
@@ -28,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/analyze", analyzeRoutes);
 app.use("/api/ranking",rankingroutes);
+app.use("/api/colleges", collegeRoutes);
 
 app.get('/', (req, res)=>{
   res.send("Backend is Working!");

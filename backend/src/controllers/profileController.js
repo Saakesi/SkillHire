@@ -94,19 +94,25 @@ export const updateProfile = async (req, res) => {
   const user = getUserFromCookie(req);
   if (!user) return res.status(401).json({ error: "Not logged in" });
 
-  const { bio, preferences, avatarUrl, leetcodeUsername } = req.body;
+  const { bio, preferences, avatarUrl, leetcodeUsername, college, branch, graduationYear } = req.body;
 
   try {
+    const updateData = {
+      updatedAt: new Date()
+    };
+
+    if (bio !== undefined) updateData.bio = bio;
+    if (preferences !== undefined) updateData.preferences = preferences;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+    if (leetcodeUsername !== undefined) updateData.leetcodeUsername = leetcodeUsername;
+
+    if (college !== undefined) updateData.college = college;
+    if (branch !== undefined) updateData.branch = branch;
+    if (graduationYear !== undefined) updateData.graduationYear = graduationYear;
     const profile = await Profile.findOneAndUpdate(
       { githubId: user.githubId },
-      {
-        bio,
-        preferences,
-        avatarUrl,
-        leetcodeUsername,
-        updatedAt: new Date()
-      },
-      { new: true, upsert: true } // create if doesn't exist
+      updateData,
+      { new: true, upsert: true }
     );
 
     // Clear Redis cache for this user

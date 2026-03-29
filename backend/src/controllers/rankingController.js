@@ -196,7 +196,7 @@ const computeCategoryLeaderboard = async (category) => {
   // console.log(`Cache MISS: ${cacheKey} — querying DB`);
 
   const frontendFrameworks = ["React", "Vue", "Angular", "Next.js", "Svelte"];
-  const backendFrameworks  = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
+  const backendFrameworks = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
 
   // Single query: all completed analyses + profiles in one $lookup (fixes N+1)
   const allAnalysis = await Analysis.aggregate([
@@ -221,44 +221,44 @@ const computeCategoryLeaderboard = async (category) => {
     const { frameworks, developerType, externalPRs, prCount } = analysis.rawMetrics || {};
 
     const hasFrontend = frameworks?.some(f => frontendFrameworks.includes(f));
-    const hasBackend  = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
+    const hasBackend = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
 
     let score = null;
 
     if (category === "frontend" && hasFrontend) {
       score = (
-        (normalizedScores.frameworkScore        * 0.4) +
+        (normalizedScores.frameworkScore * 0.4) +
         (normalizedScores.languageDiversityScore * 0.3) +
-        (normalizedScores.projectQualityScore   * 0.3)
+        (normalizedScores.projectQualityScore * 0.3)
       );
     } else if (category === "backend" && hasBackend) {
       score = (
-        (normalizedScores.repoScore          * 0.3) +
-        (normalizedScores.activityScore      * 0.3) +
+        (normalizedScores.repoScore * 0.3) +
+        (normalizedScores.activityScore * 0.3) +
         (normalizedScores.projectQualityScore * 0.2) +
-        (normalizedScores.consistencyScore   * 0.2)
+        (normalizedScores.consistencyScore * 0.2)
       );
     } else if (category === "fullStack" && hasFrontend && hasBackend) {
       score = (
-        (normalizedScores.frameworkScore        * 0.25) +
-        (normalizedScores.repoScore             * 0.25) +
+        (normalizedScores.frameworkScore * 0.25) +
+        (normalizedScores.repoScore * 0.25) +
         (normalizedScores.languageDiversityScore * 0.25) +
-        (normalizedScores.projectQualityScore   * 0.25)
+        (normalizedScores.projectQualityScore * 0.25)
       );
     } else if (category === "openSource" && (prCount > 0 || externalPRs > 0)) {
       score = (
         (normalizedScores.collaborationScore * 0.4) +
-        (normalizedScores.forkScore          * 0.3) +
+        (normalizedScores.forkScore * 0.3) +
         ((externalPRs > 0 ? Math.min(externalPRs * 10, 100) : 0) * 0.3)
       );
     } else if (category === "algorithms") {
-      const lc          = analysis.leetcodeMetrics;
+      const lc = analysis.leetcodeMetrics;
       const totalSolved = lc?.solved?.total || 0;
       if (totalSolved > 0) {
-        const lcScore         = analysis.leetcodeScore || 0;
-        const hard            = lc?.solved?.hard || 0;
-        const contestRating   = lc?.contest?.rating || 0;
-        const hardComponent   = Math.min(hard / 50 * 20, 20);
+        const lcScore = analysis.leetcodeScore || 0;
+        const hard = lc?.solved?.hard || 0;
+        const contestRating = lc?.contest?.rating || 0;
+        const hardComponent = Math.min(hard / 50 * 20, 20);
         const contestComponent = Math.min(contestRating / 2400 * 20, 20);
         score = Math.min((lcScore * 0.6) + hardComponent + contestComponent, 100);
       }
@@ -266,11 +266,11 @@ const computeCategoryLeaderboard = async (category) => {
 
     if (score !== null) {
       scored.push({
-        githubId:      analysis.githubId,
-        username:      analysis.profile?.username  || "unknown",
-        avatarUrl:     analysis.profile?.avatarUrl || "",
+        githubId: analysis.githubId,
+        username: analysis.profile?.username || "unknown",
+        avatarUrl: analysis.profile?.avatarUrl || "",
         categoryScore: parseFloat(score.toFixed(2)),
-        overallScore:  analysis.overallScore
+        overallScore: analysis.overallScore
       });
     }
   }
