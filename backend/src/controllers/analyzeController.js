@@ -99,6 +99,7 @@ export const getAnalyzeStatus = async (req, res) => {
       scoreBreakdown,
       rawMetrics: analysis.rawMetrics,
       badges: analysis.badges,
+      leetcodeScore: analysis.leetcodeScore,
       leetcodeMetrics: analysis.leetcodeMetrics,
       updatedAt: analysis.updatedAt
     });

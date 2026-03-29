@@ -36,6 +36,6 @@ export const badgeRules = [
   {
     id: "polyglot",
     condition: (rawMetrics) =>
-      rawMetrics.languageEntropy >= 1.2
+      rawMetrics.languageEntropy >= 0.5
   }
 ];

@@ -16,6 +16,7 @@ import { computeBadges } from "../services/badges/badgeService.js";
 import { analyzeLeetcode } from "../services/leetcode/leetcodeService.js";
 
 import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
+import { computeLeetCodeScore } from "../services/scoring/scoreLeetCode.js";
 
 dotenv.config();
 await mongoose.connect(process.env.MONGO_URI);
@@ -155,21 +156,30 @@ const worker = new Worker(
 
       console.log("GitHire Score:", scoreData.finalScore);
 
+      const leetcodeScore = computeLeetCodeScore(leetcodeMetrics);
+      console.log("LeetCode Score:", leetcodeScore);
+
       /* -------- Save Result -------- */
-
-      //get badges
-      // console.log("Badge calculation started..");
-      const badges = computeBadges(rawMetrics);
-      // console.log("Badge calculation ended..", badges);
-
+      let badges = [];
+     try {
+  console.log("Computing badges...");
+  badges = computeBadges(rawMetrics);
+  console.log("Badges calculated:", badges);
+} catch (err) {
+  console.error("Badge computation error:", err.message);
+}
       // save final result
       await Analysis.findOneAndUpdate(
         { githubId },
         {
+          githubId,
+          username: githubUsername,
           status: "completed",
           rawMetrics,
           overallScore: scoreData.finalScore,
+          finalScore: scoreData.finalScore,
           scoreBreakdown: scoreData,
+          leetcodeScore,
           badges,
           leetcodeMetrics,
           updatedAt: new Date()
