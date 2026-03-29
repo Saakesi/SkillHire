@@ -23,6 +23,14 @@ import { Avatar } from "../components/ui/Avatar";
 import { StatCard } from "../components/ui/Stats";
 import { PageLoader } from "../components/ui/Loader";
 import ProgressBar from "../components/ui/ProgressBar";
+import {
+    RadarChart,
+    Radar,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis,
+    ResponsiveContainer
+} from "recharts";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -45,6 +53,7 @@ export const DeveloperDashboard = () => {
     const [editingLeetcode, setEditingLeetcode] = useState(false);
     const [leetcodeUsername, setLeetcodeUsername] = useState(profile.leetcodeUsername || "");
     const [savingLeetcode, setSavingLeetcode] = useState(false);
+    const [analysis, setAnalysis] = useState(null);
 
     if (!profile) return <PageLoader />;
 
@@ -56,6 +65,7 @@ export const DeveloperDashboard = () => {
         const fetchAnalysis = async () => {
             try {
                 const res = await axios.get(`${API}/api/analyze/status/${username}`);
+                setAnalysis(res.data);
 
                 if (res.data?.rawMetrics) {
                     setMetrics(res.data.rawMetrics);
@@ -221,6 +231,39 @@ export const DeveloperDashboard = () => {
     };
 
     const techStack = metrics?.skills || [];
+
+    const radarData = [
+        {
+            metric: "Activity",
+            value: analysis?.scoreBreakdown?.normalizedScores?.activityScore || 0
+        },
+        {
+            metric: "Collaboration",
+            value: analysis?.scoreBreakdown?.normalizedScores?.collaborationScore || 0
+        },
+        {
+            metric: "Consistency",
+            value: analysis?.scoreBreakdown?.normalizedScores?.consistencyScore || 0
+        },
+        {
+            metric: "Languages",
+            value: analysis?.scoreBreakdown?.normalizedScores?.languageDiversityScore || 0
+        },
+        {
+            metric: "Quality",
+            value: analysis?.scoreBreakdown?.normalizedScores?.projectQualityScore || 0
+        },
+        {
+            metric: "Frameworks",
+            value: analysis?.scoreBreakdown?.normalizedScores?.frameworkScore || 0
+        }
+    ];
+
+    const overallScore = analysis?.overallScore || 0;
+    const radius = 56;
+    const circumference = 2 * Math.PI * radius;
+    const progress = (overallScore / 100) * circumference;
+
 
     const publicProfileUrl = `${window.location.origin}/profile/${username}`;
 
@@ -640,19 +683,27 @@ export const DeveloperDashboard = () => {
                                                         strokeWidth="8"
                                                         fill="none"
                                                         strokeLinecap="round"
-                                                        strokeDasharray="317 352"
+                                                        strokeDasharray={`${progress} ${circumference}`}
+                                                        className="transition-all duration-1000"
                                                     />
+
+                                                    <defs>
+                                                        <linearGradient id="gradient">
+                                                            <stop offset="0%" stopColor="#6366f1" />
+                                                            <stop offset="100%" stopColor="#8b5cf6" />
+                                                        </linearGradient>
+                                                    </defs>
 
                                                 </svg>
 
                                                 <span className="absolute text-4xl font-bold">
-                                                    92
+                                                    {Math.round(overallScore)}
                                                 </span>
 
                                             </div>
 
                                             <p className="text-sm text-muted-foreground mt-3">
-                                                Top 8% of developers
+                                                Developer performance score
                                             </p>
 
                                         </div>
@@ -664,6 +715,46 @@ export const DeveloperDashboard = () => {
                             </div>
 
                         </div>
+
+                        {/* SKILL RADAR CHART */}
+
+                        {analysis && (
+
+                            <Card className="mt-10 transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
+
+                                <CardHeader>
+                                    <CardTitle>Developer Skill Profile</CardTitle>
+                                </CardHeader>
+
+                                <CardContent className="h-[350px]">
+
+                                    <ResponsiveContainer width="100%" height="100%">
+
+                                        <RadarChart data={radarData}>
+
+                                            <PolarGrid />
+
+                                            <PolarAngleAxis dataKey="metric" />
+
+                                            <PolarRadiusAxis />
+
+                                            <Radar
+                                                name="Score"
+                                                dataKey="value"
+                                                stroke="#8b5cf6"
+                                                fill="#8b5cf6"
+                                                fillOpacity={0.6}
+                                            />
+
+                                        </RadarChart>
+
+                                    </ResponsiveContainer>
+
+                                </CardContent>
+
+                            </Card>
+
+                        )}
 
 
 
