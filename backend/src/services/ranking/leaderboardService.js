@@ -1,6 +1,16 @@
 import Analysis from "../../models/Analysis.js";
+import { cacheGet, cacheSet } from "../cache/cacheService.js";
+
+const LEADERBOARD_TTL = 600; // 10 minutes
 
 export const getGlobalLeaderboard = async (limit = 100) => {
+  const key = `leaderboard:global`;
+  const cached = await cacheGet(key);
+  if (cached) {
+    console.log("Cache HIT: leaderboard:global");
+    return cached;
+  }
+  console.log("Cache MISS: leaderboard:global — querying DB");
   return await Analysis.aggregate([
     // Step 1: Sort by score
     { $sort: { overallScore: -1 } },
@@ -41,6 +51,8 @@ export const getGlobalLeaderboard = async (limit = 100) => {
       }
     }
   ]);
+  await cacheSet(key, result, LEADERBOARD_TTL);
+  return result;
 };
 
 export const getTop10Leaderboard = async () => {

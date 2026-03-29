@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LoginPage } from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
 import { DeveloperDashboard } from './pages/DeveloperDashboard';
+import Leaderboard from "./pages/Leaderboard";
+import PublicProfile from "./pages/PublicProfile";
 import LandingPage from "./components/landing/LandingPage";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -17,6 +18,8 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/profile/:username" element={<PublicProfile />} />
             <Route path="/dashboard"
               element={
                 <ProtectedRoute>
@@ -24,7 +27,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            {/* <Route path="/dashboard" element={<Dashboard />} /> */}
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

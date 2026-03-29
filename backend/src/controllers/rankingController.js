@@ -5,6 +5,9 @@ import {
 
 import Profile from "../models/Profile.js";
 import Analysis from "../models/Analysis.js";
+import { cacheGet, cacheSet } from "../services/cache/cacheService.js";
+
+const CATEGORY_TTL = 600; // 10 minutes
 
 /* -------- Global Leaderboard -------- */
 export const leaderboard = async (req, res) => {
@@ -182,78 +185,102 @@ export const getCategoryRank = async (req, res) => {
 
 // ─── shared helper (not exported) ───────────────────────────────────────────
 const computeCategoryLeaderboard = async (category) => {
-  const allAnalysis = await Analysis.find({ status: "completed" });
+
+  // Check cache first
+  const cacheKey = `leaderboard:${category}`;
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    // console.log(`Cache HIT: ${cacheKey}`);
+    return cached;
+  }
+  // console.log(`Cache MISS: ${cacheKey} — querying DB`);
 
   const frontendFrameworks = ["React", "Vue", "Angular", "Next.js", "Svelte"];
-  const backendFrameworks = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
+  const backendFrameworks  = ["Express", "Django", "FastAPI", "Spring", "NestJS", "Node.js"];
+
+  // Single query: all completed analyses + profiles in one $lookup (fixes N+1)
+  const allAnalysis = await Analysis.aggregate([
+    { $match: { status: "completed" } },
+    {
+      $lookup: {
+        from: "profiles",
+        localField: "githubId",
+        foreignField: "githubId",
+        as: "profile"
+      }
+    },
+    { $unwind: { path: "$profile", preserveNullAndEmptyArrays: true } }
+  ]);
 
   const scored = [];
 
   for (const analysis of allAnalysis) {
-    const { normalizedScores } = analysis.scoreBreakdown;
-    const { frameworks, developerType, externalPRs, prCount } = analysis.rawMetrics;
+    const { normalizedScores } = analysis.scoreBreakdown || {};
+    if (!normalizedScores) continue;
+
+    const { frameworks, developerType, externalPRs, prCount } = analysis.rawMetrics || {};
 
     const hasFrontend = frameworks?.some(f => frontendFrameworks.includes(f));
-    const hasBackend = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
+    const hasBackend  = developerType === "Backend" || frameworks?.some(f => backendFrameworks.includes(f));
 
     let score = null;
 
     if (category === "frontend" && hasFrontend) {
       score = (
-        (normalizedScores.frameworkScore * 0.4) +
+        (normalizedScores.frameworkScore        * 0.4) +
         (normalizedScores.languageDiversityScore * 0.3) +
-        (normalizedScores.projectQualityScore * 0.3)
+        (normalizedScores.projectQualityScore   * 0.3)
       );
     } else if (category === "backend" && hasBackend) {
       score = (
-        (normalizedScores.repoScore * 0.3) +
-        (normalizedScores.activityScore * 0.3) +
+        (normalizedScores.repoScore          * 0.3) +
+        (normalizedScores.activityScore      * 0.3) +
         (normalizedScores.projectQualityScore * 0.2) +
-        (normalizedScores.consistencyScore * 0.2)
+        (normalizedScores.consistencyScore   * 0.2)
       );
     } else if (category === "fullStack" && hasFrontend && hasBackend) {
       score = (
-        (normalizedScores.frameworkScore * 0.25) +
-        (normalizedScores.repoScore * 0.25) +
+        (normalizedScores.frameworkScore        * 0.25) +
+        (normalizedScores.repoScore             * 0.25) +
         (normalizedScores.languageDiversityScore * 0.25) +
-        (normalizedScores.projectQualityScore * 0.25)
+        (normalizedScores.projectQualityScore   * 0.25)
       );
     } else if (category === "openSource" && (prCount > 0 || externalPRs > 0)) {
       score = (
         (normalizedScores.collaborationScore * 0.4) +
-        (normalizedScores.forkScore * 0.3) +
+        (normalizedScores.forkScore          * 0.3) +
         ((externalPRs > 0 ? Math.min(externalPRs * 10, 100) : 0) * 0.3)
       );
     } else if (category === "algorithms") {
-      const leetcodeMetrics = analysis.leetcodeMetrics;
-      const totalSolved = leetcodeMetrics?.solved?.total || 0;
+      const lc          = analysis.leetcodeMetrics;
+      const totalSolved = lc?.solved?.total || 0;
       if (totalSolved > 0) {
-        const leetcodeScore = analysis.leetcodeScore || 0;
-        const hard = leetcodeMetrics?.solved?.hard || 0;
-        const contestRating = leetcodeMetrics?.contest?.rating || 0;
-        const hardComponent = Math.min(hard / 50 * 20, 20);
+        const lcScore         = analysis.leetcodeScore || 0;
+        const hard            = lc?.solved?.hard || 0;
+        const contestRating   = lc?.contest?.rating || 0;
+        const hardComponent   = Math.min(hard / 50 * 20, 20);
         const contestComponent = Math.min(contestRating / 2400 * 20, 20);
-        score = Math.min(
-          (leetcodeScore * 0.6) + hardComponent + contestComponent,
-          100
-        );
+        score = Math.min((lcScore * 0.6) + hardComponent + contestComponent, 100);
       }
     }
 
     if (score !== null) {
-      const profile = await Profile.findOne({ githubId: analysis.githubId });
       scored.push({
-        githubId: analysis.githubId,
-        username: profile?.username || "unknown",
-        avatarUrl: profile?.avatarUrl || "",
+        githubId:      analysis.githubId,
+        username:      analysis.profile?.username  || "unknown",
+        avatarUrl:     analysis.profile?.avatarUrl || "",
         categoryScore: parseFloat(score.toFixed(2)),
-        overallScore: analysis.overallScore
+        overallScore:  analysis.overallScore
       });
     }
   }
 
   scored.sort((a, b) => b.categoryScore - a.categoryScore);
-  return scored.map((user, index) => ({ rank: index + 1, ...user }));
+  const result = scored.map((user, index) => ({ rank: index + 1, ...user }));
+
+  // Store in cache
+  await cacheSet(cacheKey, result, CATEGORY_TTL);
+  return result;
 };
 
 // ─── get full leaderboard for a category ─────────────────────────────────────

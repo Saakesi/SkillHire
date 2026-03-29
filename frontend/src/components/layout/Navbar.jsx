@@ -39,13 +39,15 @@ export const Navbar = () => {
       ? [
           { href: '/recruiter', label: 'Search' },
           { href: '/shortlist', label: 'Shortlist' },
+          { href: '/leaderboard', label: 'Leaderboard' },
         ]
       : [
           { href: '/dashboard', label: 'Dashboard' },
-          { href: `/profile/${profile?.username}`, label: 'My Profile' },
+          { href: '/leaderboard', label: 'Leaderboard' },
         ]
     : [
         { href: '/#features', label: 'Features' },
+        { href: '/leaderboard', label: 'Leaderboard' },
         { href: '/recruiters', label: 'For Recruiters' },
       ];
 

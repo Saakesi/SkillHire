@@ -2,136 +2,193 @@ import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import {
-    Code2,
-    Star,
-    GitFork,
-    GitPullRequest,
-    GitMerge,
-    Flame,
-    Calendar,
-    Activity,
-    ExternalLink,
-    AlertCircle,
-    PlayCircle,
-    Pencil
+    Code2, Star, GitFork, GitPullRequest, GitMerge, Flame,
+    Calendar, Activity, ExternalLink, AlertCircle, PlayCircle,
+    Pencil, Check, X, MessageSquare, Eye, Trophy, Shield,
+    Zap, Copy, GitBranch, Award, BarChart3, RefreshCw,
+    CheckCircle2, XCircle, FileText, TestTube, Container, BookOpen
 } from "lucide-react";
+import {
+    RadarChart, Radar, PolarGrid, PolarAngleAxis,
+    PolarRadiusAxis, ResponsiveContainer, Tooltip
+} from "recharts";
 import { useAuth } from "../context/AuthContext";
 import { Layout } from "../components/layout/Layout";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Avatar } from "../components/ui/Avatar";
-import { StatCard } from "../components/ui/Stats";
 import { PageLoader } from "../components/ui/Loader";
 import ProgressBar from "../components/ui/ProgressBar";
-import {
-    RadarChart,
-    Radar,
-    PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis,
-    ResponsiveContainer
-} from "recharts";
 
 const API = import.meta.env.VITE_API_URL;
 
+const LANGUAGE_COLORS = {
+    javascript: "#f7df1e", typescript: "#3178c6", python: "#3776ab",
+    java: "#f89820", go: "#00ADD8", rust: "#dea584", c: "#A8B9CC",
+    "c++": "#00599C", cpp: "#00599C", "c#": "#239120", csharp: "#239120",
+    php: "#777BB4", ruby: "#CC342D", swift: "#FA7343", kotlin: "#7F52FF",
+    dart: "#0175C2", shell: "#89e051", html: "#e34c26", css: "#264de4",
+    r: "#276DC3", scala: "#DC322F", elixir: "#6E4A7E",
+};
+
+const TECH_ICONS = {
+    javascript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+    typescript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
+    python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+    react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
+    express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
+    html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
+    css: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
+    vercel: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg",
+    aws: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original-wordmark.svg",
+    firebase: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg",
+    kubernetes: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
+    docker: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg",
+    mongodb: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
+    postgresql: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg",
+    redis: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg",
+    go: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original-wordmark.svg",
+    rust: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg",
+};
+
+const SCORE_LABELS = {
+    activityScore: "Activity",
+    consistencyScore: "Consistency",
+    collaborationScore: "Collaboration",
+    codeReviewScore: "Code Review",
+    projectQualityScore: "Project Quality",
+    languageDiversityScore: "Lang Diversity",
+    frameworkScore: "Frameworks",
+    repoScore: "Repos",
+    starScore: "Stars",
+    forkScore: "Forks",
+    streakScore: "Streak",
+    issueScore: "Issues",
+};
+
+const fadeUp = {
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.4 }
+};
+
+function StatCard({ icon, label, value, color = "text-primary" }) {
+    return (
+        <div className="flex flex-col gap-1 p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors">
+            <div className={`${color} mb-1`}>{icon}</div>
+            <span className="text-2xl font-bold font-mono">{value ?? "—"}</span>
+            <span className="text-xs text-muted-foreground">{label}</span>
+        </div>
+    );
+}
+
+function ScoreCircle({ score }) {
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
+    const progress = (Math.min(score, 100) / 100) * circumference;
+
+    const color = score >= 75 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#6366f1";
+
+    return (
+        <div className="relative inline-flex items-center justify-center w-36 h-36">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128">
+                <circle cx="64" cy="64" r={radius} stroke="currentColor"
+                    strokeWidth="10" fill="none" className="text-border" />
+                <motion.circle
+                    cx="64" cy="64" r={radius}
+                    stroke={color}
+                    strokeWidth="10" fill="none"
+                    strokeLinecap="round"
+                    initial={{ strokeDasharray: `0 ${circumference}` }}
+                    animate={{ strokeDasharray: `${progress} ${circumference}` }}
+                    transition={{ duration: 1.4, ease: "easeOut", delay: 0.3 }}
+                />
+            </svg>
+            <div className="absolute text-center">
+                <span className="text-3xl font-bold font-mono">{Math.round(score)}</span>
+                <span className="block text-xs text-muted-foreground">/ 100</span>
+            </div>
+        </div>
+    );
+}
+
+function SectionTitle({ icon, children }) {
+    return (
+        <div className="flex items-center gap-2 mb-4">
+            <span className="text-primary">{icon}</span>
+            <h3 className="font-semibold text-base">{children}</h3>
+        </div>
+    );
+}
+
 export const DeveloperDashboard = () => {
-
     const { profile } = useAuth();
-    const username = profile?.username;
 
+    const [analysis, setAnalysis] = useState(null);
     const [metrics, setMetrics] = useState(null);
     const [badges, setBadges] = useState([]);
     const [status, setStatus] = useState(null);
     const [updatedAt, setUpdatedAt] = useState(null);
-
     const [loading, setLoading] = useState(false);
     const [polling, setPolling] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const [editingBio, setEditingBio] = useState(false);
-    const [bio, setBio] = useState(profile.bio || "");
+    const [bio, setBio] = useState(profile?.bio || "");
     const [savingBio, setSavingBio] = useState(false);
+
     const [editingLeetcode, setEditingLeetcode] = useState(false);
-    const [leetcodeUsername, setLeetcodeUsername] = useState(profile.leetcodeUsername || "");
+    const [leetcodeUsername, setLeetcodeUsername] = useState(profile?.leetcodeUsername || "");
     const [savingLeetcode, setSavingLeetcode] = useState(false);
-    const [analysis, setAnalysis] = useState(null);
 
-    if (!profile) return <PageLoader />;
+    const username = profile?.username;
 
-    // ---------------- FETCH EXISTING ANALYSIS ----------------
-
+    // Fetch existing analysis on mount
     useEffect(() => {
         if (!username) return;
-
-        const fetchAnalysis = async () => {
-            try {
-                const res = await axios.get(`${API}/api/analyze/status/${username}`);
+        axios.get(`${API}/api/analyze/status/${username}`)
+            .then(res => {
                 setAnalysis(res.data);
-
                 if (res.data?.rawMetrics) {
                     setMetrics(res.data.rawMetrics);
                     setBadges(res.data.badges || []);
                     setUpdatedAt(res.data.updatedAt);
                     setStatus(res.data.status);
                 }
-
                 if (res.data.status === "processing" || res.data.status === "queued") {
                     setPolling(true);
                 }
+            })
+            .catch(console.error);
+    }, [username]);
 
+    // Poll while analysis is running
+    useEffect(() => {
+        if (!polling) return;
+        const interval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${API}/api/analyze/status/${username}`, { withCredentials: true });
+                setStatus(res.data.status);
+                if (res.data.status === "completed") {
+                    setAnalysis(res.data);
+                    setMetrics(res.data.rawMetrics);
+                    setBadges(res.data.badges || []);
+                    setUpdatedAt(res.data.updatedAt);
+                    setPolling(false);
+                    clearInterval(interval);
+                }
             } catch (err) {
                 console.error(err);
             }
-        };
-        fetchAnalysis();
-    }, [username]);
+        }, 2500);
+        return () => clearInterval(interval);
+    }, [polling, username]);
 
-    //---------------UPDATE BIO---------------
-    const saveBio = async () => {
-        try {
-            setSavingBio(true);
-            await axios.put(
-                `${API}/api/profile/update`,
-                { bio },
-                { withCredentials: true }
-            );
-            setEditingBio(false);
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setSavingBio(false);
-        }
-
-    };
-
-    const saveLeetcodeUsername = async () => {
-        try {
-            setSavingLeetcode(true);
-
-            await axios.put(
-                `${API}/api/profile/update`,
-                { leetcodeUsername },
-                { withCredentials: true }
-            );
-
-            setEditingLeetcode(false);
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setSavingLeetcode(false);
-        }
-    };
-
-    // ---------------- ANALYZE BUTTON ----------------
     const handleAnalyze = async () => {
         try {
             setLoading(true);
-            await axios.post(
-                `${API}/api/analyze`,
-                {},
-                { withCredentials: true }
-            );
+            await axios.post(`${API}/api/analyze`, {}, { withCredentials: true });
+            setStatus("queued");
             setPolling(true);
         } catch (err) {
             console.error(err);
@@ -140,37 +197,44 @@ export const DeveloperDashboard = () => {
         }
     };
 
-    // ---------------- POLLING ----------------
-    useEffect(() => {
-        if (!polling) return;
-        const interval = setInterval(async () => {
-            const res = await axios.get(`${API}/api/analyze/status/${username}`, {
-                withCredentials: true
-            });
-            setStatus(res.data.status);
+    const saveBio = async () => {
+        setSavingBio(true);
+        try {
+            await axios.put(`${API}/api/profile/update`, { bio }, { withCredentials: true });
+            setEditingBio(false);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingBio(false);
+        }
+    };
 
-            if (res.data.status === "completed") {
-                setMetrics(res.data.rawMetrics);
-                setBadges(res.data.badges || []);
-                setUpdatedAt(res.data.updatedAt);
+    const saveLeetcodeUsername = async () => {
+        setSavingLeetcode(true);
+        try {
+            await axios.put(`${API}/api/profile/update`, { leetcodeUsername }, { withCredentials: true });
+            setEditingLeetcode(false);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSavingLeetcode(false);
+        }
+    };
 
-                setPolling(false);
-                clearInterval(interval);
-            }
-        }, 2000);
-        return () => clearInterval(interval);
-    }, [polling]);
+    const copyProfileUrl = () => {
+        const url = `${window.location.origin}/profile/${username}`;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
-    // ---------------- MONTHLY COMMITS ----------------
+    // Monthly commits for bar chart
     const monthlyCommits = useMemo(() => {
         const months = [];
         const now = new Date();
         for (let i = 5; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const key = `${d.getFullYear()}-${String(
-                d.getMonth() + 1
-            ).padStart(2, "0")}`;
-
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
             months.push({
                 label: d.toLocaleString("default", { month: "short" }),
                 commits: metrics?.monthlyCommits?.[key] || 0
@@ -181,582 +245,659 @@ export const DeveloperDashboard = () => {
 
     const maxCommits = Math.max(...monthlyCommits.map(m => m.commits), 1);
 
-    // ---------------- TOP LANGUAGES ----------------
+    // Top 5 languages
     const topLanguages = useMemo(() => {
         if (!metrics?.languagePercentages) return [];
         return Object.entries(metrics.languagePercentages)
-            .map(([name, value]) => ({
-                name,
-                percent: Math.round(value * 100)
-            }))
+            .map(([name, value]) => ({ name, percent: Math.round(value * 100) }))
             .sort((a, b) => b.percent - a.percent)
-            .slice(0, 5);
+            .slice(0, 6);
     }, [metrics]);
 
-    // ---------------- TECH STACK ----------------
+    // Radar data — 8 key metrics
+    const radarData = useMemo(() => {
+        const s = analysis?.scoreBreakdown?.normalizedScores || {};
+        return [
+            { metric: "Activity",    value: Math.round(s.activityScore || 0) },
+            { metric: "Consistency", value: Math.round(s.consistencyScore || 0) },
+            { metric: "Collab",      value: Math.round(s.collaborationScore || 0) },
+            { metric: "Reviews",     value: Math.round(s.codeReviewScore || 0) },
+            { metric: "Quality",     value: Math.round(s.projectQualityScore || 0) },
+            { metric: "Languages",   value: Math.round(s.languageDiversityScore || 0) },
+            { metric: "Frameworks",  value: Math.round(s.frameworkScore || 0) },
+            { metric: "Stars",       value: Math.round(s.starScore || 0) },
+        ];
+    }, [analysis]);
 
-    const techIcons = {
-        javascript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
-        typescript: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
-        python: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
-        react: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg",
-        express: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg",
-        html: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
-        css: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
-        ejs: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
-        vercel: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vercel/vercel-original.svg",
-        aws: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg",
-        firebase: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/firebase/firebase-plain.svg",
-        kubernetes: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kubernetes/kubernetes-plain.svg",
-        netlify: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/netlify/netlify-original.svg",
-    };
-    const languageColors = {
-        javascript: "#f7df1e",
-        typescript: "#3178c6",
-        python: "#3776ab",
-        java: "#f89820",
-        go: "#00ADD8",
-        rust: "#dea584",
-        c: "#A8B9CC",
-        cpp: "#00599C",
-        csharp: "#239120",
-        php: "#777BB4",
-        ruby: "#CC342D",
-        swift: "#FA7343",
-        kotlin: "#7F52FF",
-        dart: "#0175C2",
-        shell: "#89e051",
-        html: "#e34c26",
-        css: "#264de4",
-    };
+    // Score breakdown list (sorted by value desc)
+    const scoreBreakdown = useMemo(() => {
+        const s = analysis?.scoreBreakdown?.normalizedScores || {};
+        return Object.entries(SCORE_LABELS)
+            .map(([key, label]) => ({ key, label, value: Math.round(s[key] || 0) }))
+            .sort((a, b) => b.value - a.value);
+    }, [analysis]);
 
-    const techStack = metrics?.skills || [];
+    // Quality indicators
+    const qualityItems = useMemo(() => {
+        const q = metrics?.qualityIndicators || {};
+        return [
+            { icon: <FileText className="w-4 h-4" />, label: "README", count: q.readme || 0 },
+            { icon: <Zap className="w-4 h-4" />, label: "CI/CD", count: q.ci || 0 },
+            { icon: <TestTube className="w-4 h-4" />, label: "Tests", count: q.tests || 0 },
+            { icon: <Container className="w-4 h-4" />, label: "Docker", count: q.docker || 0 },
+            { icon: <BookOpen className="w-4 h-4" />, label: "License", count: q.license || 0 },
+        ];
+    }, [metrics]);
 
-    const radarData = [
-        {
-            metric: "Activity",
-            value: analysis?.scoreBreakdown?.normalizedScores?.activityScore || 0
-        },
-        {
-            metric: "Collaboration",
-            value: analysis?.scoreBreakdown?.normalizedScores?.collaborationScore || 0
-        },
-        {
-            metric: "Consistency",
-            value: analysis?.scoreBreakdown?.normalizedScores?.consistencyScore || 0
-        },
-        {
-            metric: "Languages",
-            value: analysis?.scoreBreakdown?.normalizedScores?.languageDiversityScore || 0
-        },
-        {
-            metric: "Quality",
-            value: analysis?.scoreBreakdown?.normalizedScores?.projectQualityScore || 0
-        },
-        {
-            metric: "Frameworks",
-            value: analysis?.scoreBreakdown?.normalizedScores?.frameworkScore || 0
-        }
-    ];
+    // LeetCode
+    const lc = analysis?.leetcodeMetrics;
+    const lcScore = analysis?.leetcodeScore || 0;
+
+    // Top algorithm tags (advanced first, then intermediate)
+    const topAlgoTags = useMemo(() => {
+        if (!lc?.algorithms) return [];
+        const advanced = lc.algorithms.advanced || [];
+        const intermediate = lc.algorithms.intermediate || [];
+        return [...advanced, ...intermediate]
+            .sort((a, b) => b.problemsSolved - a.problemsSolved)
+            .slice(0, 6);
+    }, [lc]);
+
+    if (!profile) return <PageLoader />;
 
     const overallScore = analysis?.overallScore || 0;
-    const radius = 56;
-    const circumference = 2 * Math.PI * radius;
-    const progress = (overallScore / 100) * circumference;
-
-
-    const publicProfileUrl = `${window.location.origin}/profile/${username}`;
+    const isAnalyzing = polling || status === "processing" || status === "queued";
 
     return (
-        <Layout showFooter={true}>
-            <div className="min-h-screen bg-background">
+        <Layout showFooter={false}>
+            <div className="min-h-screen bg-background pb-16">
 
-                {/* HEADER */}
-                <div className="gradient-bg-subtle py-10 sm:py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                {/* ─── PROFILE HEADER ─── */}
+                <div className="border-b border-border bg-card/50 backdrop-blur-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+                        <div className="flex flex-col md:flex-row md:items-start gap-6">
+
+                            {/* Avatar + Info */}
+                            <div className="flex items-start gap-5 flex-1">
                                 <Avatar
                                     src={profile.avatarUrl}
                                     name={profile.name || profile.username}
                                     size="xl"
-                                    className="sm:size-2xl"
                                 />
-                                <div>
-                                    <h1 className="text-2xl sm:text-3xl font-bold">
-                                        {profile.name || profile.username}
-                                    </h1>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <h1 className="text-2xl font-bold truncate">
+                                            {profile.name || profile.username}
+                                        </h1>
+                                        {metrics?.developerType && (
+                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                                {metrics.developerType}
+                                            </span>
+                                        )}
+                                        {metrics?.primaryLanguage && (
+                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                                                {metrics.primaryLanguage}
+                                            </span>
+                                        )}
+                                    </div>
+
                                     <a
                                         href={`https://github.com/${profile.username}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mt-0.5 w-fit"
                                     >
                                         @{profile.username}
                                         <ExternalLink className="w-3 h-3" />
                                     </a>
-                                    <div className="flex items-start gap-2 mt-1">
 
+                                    {/* Bio */}
+                                    <div className="mt-2">
                                         {!editingBio ? (
-
-                                            <>
-                                                <p className="text-muted-foreground">
-                                                    {bio || "Add a short bio about yourself."}
-                                                </p>
-
-                                                <button
-                                                    onClick={() => setEditingBio(true)}
-                                                    className="text-muted-foreground hover:text-primary"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                            </>
-
-                                        ) : (
-
-                                            <div className="flex flex-col gap-2 w-full">
-
-                                                <textarea
-                                                    value={bio}
-                                                    onChange={(e) => setBio(e.target.value)}
-                                                    className="w-full border rounded-md p-2 text-sm bg-background"
-                                                    rows={3}
-                                                    placeholder="Write something about yourself..."
-                                                />
-
-                                                <div className="flex gap-2">
-
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={saveBio}
-                                                        disabled={savingBio}
-                                                    >
-                                                        {savingBio ? "Saving..." : "Save"}
-                                                    </Button>
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setEditingBio(false);
-                                                            setBio(profile.bio || "");
-                                                        }}
-                                                    >
-                                                        Cancel
-                                                    </Button>
-
-                                                </div>
-
-                                            </div>
-
-                                        )}
-
-                                    </div>
-                                    {/* LEETCODE USERNAME */}
-
-                                    <div className="flex items-center gap-2 mt-2">
-
-                                        {!editingLeetcode ? (
-
-                                            <>
+                                            <div className="flex items-start gap-2">
                                                 <p className="text-sm text-muted-foreground">
-                                                    LeetCode: {leetcodeUsername || "Not connected"}
+                                                    {bio || "Add a bio…"}
                                                 </p>
-
-                                                <button
-                                                    onClick={() => setEditingLeetcode(true)}
-                                                    className="text-muted-foreground hover:text-primary"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
+                                                <button onClick={() => setEditingBio(true)}
+                                                    className="text-muted-foreground hover:text-primary flex-shrink-0 mt-0.5">
+                                                    <Pencil className="w-3.5 h-3.5" />
                                                 </button>
-                                            </>
-
+                                            </div>
                                         ) : (
-
-                                            <div className="flex flex-col gap-2">
-
-                                                <input
-                                                    value={leetcodeUsername}
-                                                    onChange={(e) => setLeetcodeUsername(e.target.value)}
-                                                    placeholder="Enter LeetCode username"
-                                                    className="border rounded-md px-2 py-1 text-sm bg-background"
-                                                />
-
+                                            <div className="flex flex-col gap-2 max-w-md">
+                                                <textarea value={bio} onChange={e => setBio(e.target.value)}
+                                                    rows={2} placeholder="Write something about yourself…"
+                                                    className="w-full border border-border rounded-lg p-2 text-sm bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary" />
                                                 <div className="flex gap-2">
-
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={saveLeetcodeUsername}
-                                                        disabled={savingLeetcode}
-                                                    >
-                                                        {savingLeetcode ? "Saving..." : "Save"}
+                                                    <Button size="sm" onClick={saveBio} disabled={savingBio}>
+                                                        {savingBio ? "Saving…" : "Save"}
                                                     </Button>
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setEditingLeetcode(false);
-                                                            setLeetcodeUsername(profile.leetcodeUsername || "");
-                                                        }}
-                                                    >
+                                                    <Button size="sm" variant="outline"
+                                                        onClick={() => { setEditingBio(false); setBio(profile.bio || ""); }}>
                                                         Cancel
                                                     </Button>
-
                                                 </div>
-
                                             </div>
-
                                         )}
-
                                     </div>
-                                    {metrics && (
 
-                                        <div className="flex flex-wrap gap-3 mt-3">
-
-                                            <div className="px-3 py-2 border border-primary/40 bg-primary/10 rounded-lg text-sm">
-                                                Primary Language: <b>{metrics.primaryLanguage}</b>
+                                    {/* LeetCode username */}
+                                    <div className="mt-2 flex items-center gap-2">
+                                        {!editingLeetcode ? (
+                                            <>
+                                                <span className="text-xs text-muted-foreground">
+                                                    LeetCode: <span className={leetcodeUsername ? "text-foreground font-medium" : ""}>
+                                                        {leetcodeUsername || "not connected"}
+                                                    </span>
+                                                </span>
+                                                <button onClick={() => setEditingLeetcode(true)}
+                                                    className="text-muted-foreground hover:text-primary">
+                                                    <Pencil className="w-3 h-3" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <input value={leetcodeUsername}
+                                                    onChange={e => setLeetcodeUsername(e.target.value)}
+                                                    placeholder="LeetCode username"
+                                                    className="border border-border rounded-lg px-2 py-1 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary w-44" />
+                                                <Button size="sm" onClick={saveLeetcodeUsername} disabled={savingLeetcode}>
+                                                    {savingLeetcode ? "…" : "Save"}
+                                                </Button>
+                                                <Button size="sm" variant="outline"
+                                                    onClick={() => { setEditingLeetcode(false); setLeetcodeUsername(profile.leetcodeUsername || ""); }}>
+                                                    Cancel
+                                                </Button>
                                             </div>
-
-                                            <div className="px-3 py-2 border border-primary/40 bg-primary/10 rounded-lg text-sm">
-                                                Developer: <b>{metrics.developerType}</b>
-                                            </div>
-
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
-
+                            {/* Right: Analyze button + last updated */}
+                            <div className="flex flex-col items-start md:items-end gap-2 flex-shrink-0">
                                 <Button
                                     variant="gradient"
-                                    icon={<PlayCircle />}
+                                    icon={isAnalyzing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
                                     onClick={handleAnalyze}
-                                    disabled={loading || polling || status === "processing" || status === "queued"}
+                                    disabled={loading || isAnalyzing}
                                 >
-                                    {loading
-                                        ? "Starting..."
-                                        : polling || status === "processing"
-                                            ? "Analyzing..."
-                                            : "Analyze"}
+                                    {loading ? "Starting…" : isAnalyzing ? "Analyzing…" : metrics ? "Re-analyze" : "Analyze Profile"}
                                 </Button>
-
                                 {updatedAt && (
                                     <span className="text-xs text-muted-foreground">
-                                        Last updated: {new Date(updatedAt).toLocaleString()}
+                                        Updated {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                     </span>
                                 )}
-
+                                {isAnalyzing && (
+                                    <span className="text-xs text-primary animate-pulse">
+                                        Analysis running…
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* METRICS */}
+                {/* ─── EMPTY STATE ─── */}
+                {!metrics && !isAnalyzing && (
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">
+                        <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold mb-2">No analysis yet</h2>
+                        <p className="text-muted-foreground mb-6 max-w-sm mx-auto text-sm">
+                            Run your first analysis to see your developer score, skills, and insights.
+                        </p>
+                        <Button variant="gradient" icon={<PlayCircle className="w-4 h-4" />} onClick={handleAnalyze} disabled={loading}>
+                            {loading ? "Starting…" : "Analyze Profile"}
+                        </Button>
+                    </div>
+                )}
 
+                {/* ─── ANALYZING STATE ─── */}
+                {isAnalyzing && !metrics && (
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">
+                        <RefreshCw className="w-10 h-10 text-primary mx-auto mb-4 animate-spin" />
+                        <h2 className="text-lg font-semibold mb-1">Analyzing your GitHub profile…</h2>
+                        <p className="text-sm text-muted-foreground">This takes about 30–60 seconds</p>
+                    </div>
+                )}
+
+                {/* ─── MAIN CONTENT (only when metrics exist) ─── */}
                 {metrics && (
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10">
-
-                            <StatCard icon={<Code2 />} label="Repos" value={metrics.repoCount} />
-                            <StatCard icon={<Star />} label="Stars" value={metrics.totalStars} />
-                            <StatCard icon={<GitFork />} label="Forks" value={metrics.totalForks} />
-                            <StatCard icon={<Activity />} label="Commits (6M)" value={metrics.commitCount6Months} />
-                            <StatCard icon={<Calendar />} label="Active Weeks" value={metrics.activeWeeks} />
-                            <StatCard icon={<Flame />} label="Streak" value={metrics.longestStreak} />
-                            <StatCard icon={<GitPullRequest />} label="PRs" value={metrics.prCount} />
-                            <StatCard icon={<GitMerge />} label="Merged PR" value={metrics.mergedPRCount} />
-                            <StatCard icon={<ExternalLink />} label="External PR" value={metrics.externalPRs} />
-                            <StatCard icon={<AlertCircle />} label="Issues" value={metrics.issueCount} />
-
-                        </div>
-
-                        {/* CHART + SIDE */}
-
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                            {/* LEFT SIDE */}
-
-                            <div className="lg:col-span-2 space-y-8">
-
-                                {/* CONTRIBUTION ACTIVITY */}
-
-                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Activity /> Contribution Activity
-                                        </CardTitle>
-                                    </CardHeader>
-
-                                    <CardContent>
-
-                                        <div className="flex items-end gap-2 sm:gap-4 h-48 sm:h-56 overflow-x-auto">
-
-                                            {monthlyCommits.map((m, i) => {
-
-                                                const height =
-                                                    m.commits === 0 ? 0 : Math.max((m.commits / maxCommits) * 180, 10);
-
-                                                return (
-                                                    <div key={i} className="flex-1 min-w-[40px] flex flex-col items-center">
-
-                                                        <div className="relative group w-full flex items-end justify-center">
-
-                                                            <span className="absolute -top-6 opacity-0 group-hover:opacity-100 transition text-xs bg-black text-white px-2 py-1 rounded">
-                                                                {m.commits}
-                                                            </span>
-
-                                                            <motion.div
-                                                                initial={{ height: 0 }}
-                                                                animate={{ height }}
-                                                                transition={{ duration: 0.6 }}
-                                                                className="w-full rounded-md bg-gradient-to-t from-blue-500 to-purple-500"
-                                                            />
-
-                                                        </div>
-
-                                                        <span className="text-xs mt-2">{m.label}</span>
-
-                                                    </div>
-                                                );
-                                            })}
-
-                                        </div>
-
-                                        <div className="text-center mt-6">
-                                            <p className="text-2xl font-bold">
-                                                {metrics.commitCount6Months}
-                                            </p>
-
-                                            <p className="text-sm text-muted-foreground">
-                                                commits in the last 6 months
-                                            </p>
-                                        </div>
-
-                                    </CardContent>
-                                </Card>
-
-                                {/* TOP LANGUAGES */}
-
-                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                    <CardHeader>
-                                        <CardTitle>Top Languages</CardTitle>
-                                    </CardHeader>
-
-                                    <CardContent>
-
-                                        <div className="space-y-4">
-
-                                            {topLanguages.map((lang) => (
-
-                                                <div key={lang.name}>
-
-                                                    <div className="flex justify-between text-sm mb-1">
-                                                        <span>{lang.name}</span>
-                                                        <span>{lang.percent}%</span>
-                                                    </div>
-
-                                                    <ProgressBar value={lang.percent} color={languageColors[lang.name.toLowerCase()] || "#6366f1"} />
-
-                                                </div>
-
-                                            ))}
-
-                                        </div>
-
-                                    </CardContent>
-                                </Card>
-
-                            </div>
-
-                            {/* RIGHT SIDE */}
-
-                            <div className="space-y-8">
-
-                                {/* PUBLIC PROFILE */}
-
-                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                    <CardHeader>
-                                        <CardTitle>Your Public Profile</CardTitle>
-                                    </CardHeader>
-
-                                    <CardContent>
-
-                                        <div className="flex items-center gap-2 bg-background/60 p-3 rounded-lg">
-
-                                            <code className="text-sm flex-1 break-all">
-                                                {publicProfileUrl}
-                                            </code>
-
-                                            <button
-                                                onClick={() => navigator.clipboard.writeText(publicProfileUrl)}
-                                                className="text-primary"
-                                            >
-                                                Copy
-                                            </button>
-
-                                        </div>
-
-                                    </CardContent>
-
-                                </Card>
-
-                                {/* SKILLS */}
-
-                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                    <CardHeader>
-                                        <CardTitle>Skills</CardTitle>
-                                    </CardHeader>
-
-                                    <CardContent>
-
-                                        <div className="flex flex-wrap gap-2 sm:gap-3">
-
-                                            {techStack.map(skill => {
-
-                                                const key = skill.toLowerCase();
-
-                                                return (
-
-                                                    <div
-                                                        key={skill}
-                                                        className="flex items-center gap-2 px-2 sm:px-3 py-1 border border-border rounded-lg text-xs sm:text-sm hover:border-primary/40 hover:scale-105 transition"
-                                                    >
-
-                                                        {techIcons[key] && (
-                                                            <img
-                                                                src={techIcons[key]}
-                                                                className="w-4 h-4"
-                                                            />
-                                                        )}
-
-                                                        <span>{skill}</span>
-
-                                                    </div>
-                                                );
-                                            })}
-
-                                        </div>
-
-                                    </CardContent>
-
-                                </Card>
-
-                                {/* DEVELOPER SCORE */}
-
-                                <Card className="transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                    <CardHeader>
-                                        <CardTitle>Developer Score</CardTitle>
-                                    </CardHeader>
-
-                                    <CardContent>
-
-                                        <div className="text-center">
-
-                                            <div className="relative inline-flex items-center justify-center w-32 h-32">
-
-                                                <svg className="w-full h-full -rotate-90">
-
-                                                    <circle
-                                                        cx="64"
-                                                        cy="64"
-                                                        r="56"
-                                                        stroke="currentColor"
-                                                        strokeWidth="8"
-                                                        fill="none"
-                                                        className="text-secondary"
-                                                    />
-
-                                                    <circle
-                                                        cx="64"
-                                                        cy="64"
-                                                        r="56"
-                                                        stroke="url(#gradient)"
-                                                        strokeWidth="8"
-                                                        fill="none"
-                                                        strokeLinecap="round"
-                                                        strokeDasharray={`${progress} ${circumference}`}
-                                                        className="transition-all duration-1000"
-                                                    />
-
-                                                    <defs>
-                                                        <linearGradient id="gradient">
-                                                            <stop offset="0%" stopColor="#6366f1" />
-                                                            <stop offset="100%" stopColor="#8b5cf6" />
-                                                        </linearGradient>
-                                                    </defs>
-
-                                                </svg>
-
-                                                <span className="absolute text-4xl font-bold">
-                                                    {Math.round(overallScore)}
-                                                </span>
-
-                                            </div>
-
-                                            <p className="text-sm text-muted-foreground mt-3">
-                                                Developer performance score
-                                            </p>
-
-                                        </div>
-
-                                    </CardContent>
-
-                                </Card>
-
-                            </div>
-
-                        </div>
-
-                        {/* SKILL RADAR CHART */}
-
-                        {analysis && (
-
-                            <Card className="mt-10 transition-all duration-200 hover:scale-[1.02] hover:border hover:border-purple-500 hover:shadow-lg">
-
-                                <CardHeader>
-                                    <CardTitle>Developer Skill Profile</CardTitle>
-                                </CardHeader>
-
-                                <CardContent className="h-[350px]">
-
-                                    <ResponsiveContainer width="100%" height="100%">
-
-                                        <RadarChart data={radarData}>
-
-                                            <PolarGrid />
-
-                                            <PolarAngleAxis dataKey="metric" />
-
-                                            <PolarRadiusAxis />
-
-                                            <Radar
-                                                name="Score"
-                                                dataKey="value"
-                                                stroke="#8b5cf6"
-                                                fill="#8b5cf6"
-                                                fillOpacity={0.6}
-                                            />
-
-                                        </RadarChart>
-
-                                    </ResponsiveContainer>
-
-                                </CardContent>
-
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+                        {/* ── SCORE + STATS ROW ── */}
+                        <motion.div {...fadeUp} className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+                            {/* Score card */}
+                            <Card className="lg:col-span-1 flex flex-col items-center justify-center py-6">
+                                <p className="text-sm font-medium text-muted-foreground mb-3">Developer Score</p>
+                                <ScoreCircle score={overallScore} />
+                                <p className="text-xs text-muted-foreground mt-3 text-center">
+                                    {overallScore >= 75 ? "Excellent" : overallScore >= 50 ? "Good" : "Developing"}
+                                </p>
                             </Card>
 
+                            {/* Stats grid */}
+                            <div className="lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                <StatCard icon={<Code2 className="w-4 h-4" />} label="Repositories" value={metrics.repoCount} />
+                                <StatCard icon={<Star className="w-4 h-4" />} label="Total Stars" value={metrics.totalStars} color="text-yellow-500" />
+                                <StatCard icon={<GitFork className="w-4 h-4" />} label="Forks" value={metrics.totalForks} />
+                                <StatCard icon={<Activity className="w-4 h-4" />} label="Commits (6M)" value={metrics.commitCount6Months} color="text-green-500" />
+                                <StatCard icon={<Calendar className="w-4 h-4" />} label="Active Weeks" value={metrics.activeWeeks} />
+                                <StatCard icon={<Flame className="w-4 h-4" />} label="Longest Streak" value={`${metrics.longestStreak}d`} color="text-orange-500" />
+                                <StatCard icon={<GitPullRequest className="w-4 h-4" />} label="Pull Requests" value={metrics.prCount} />
+                                <StatCard icon={<GitMerge className="w-4 h-4" />} label="Merged PRs" value={metrics.mergedPRCount} color="text-purple-500" />
+                                <StatCard icon={<GitBranch className="w-4 h-4" />} label="External PRs" value={metrics.externalPRs} />
+                                <StatCard icon={<AlertCircle className="w-4 h-4" />} label="Issues" value={metrics.issueCount} />
+                                <StatCard icon={<Eye className="w-4 h-4" />} label="Reviews Given" value={metrics.reviewsGiven ?? 0} color="text-blue-500" />
+                                <StatCard icon={<MessageSquare className="w-4 h-4" />} label="Review Comments" value={metrics.reviewComments ?? 0} />
+                            </div>
+                        </motion.div>
+
+                        {/* ── CODE REVIEW SECTION ── */}
+                        {(metrics.reviewsGiven > 0 || metrics.approvals > 0) && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }} transition={{ duration: 0.4 }}
+                            >
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Eye className="w-4 h-4 text-primary" /> Code Review Activity
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                            <div className="text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                                <div className="text-2xl font-bold font-mono text-blue-500">{metrics.reviewsGiven ?? 0}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">Reviews Given</div>
+                                            </div>
+                                            <div className="text-center p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                                                <div className="text-2xl font-bold font-mono text-green-500">{metrics.approvals ?? 0}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">Approvals</div>
+                                            </div>
+                                            <div className="text-center p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                                                <div className="text-2xl font-bold font-mono text-orange-500">{metrics.changesRequested ?? 0}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">Changes Requested</div>
+                                            </div>
+                                            <div className="text-center p-4 rounded-xl bg-primary/10 border border-primary/20">
+                                                <div className="text-2xl font-bold font-mono text-primary">{metrics.reviewComments ?? 0}</div>
+                                                <div className="text-xs text-muted-foreground mt-1">Review Comments</div>
+                                            </div>
+                                        </div>
+                                        {metrics.reviewsGiven > 0 && (
+                                            <p className="text-xs text-muted-foreground mt-4 text-center">
+                                                Based on your last 12 months of GitHub activity
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
                         )}
 
+                        {/* ── MAIN TWO-COLUMN GRID ── */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+                            {/* LEFT: Activity + Languages */}
+                            <div className="lg:col-span-2 space-y-6">
+
+                                {/* Activity chart */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Activity className="w-4 h-4 text-primary" /> Contribution Activity
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex items-end gap-2 h-40">
+                                                {monthlyCommits.map((m, i) => {
+                                                    const h = m.commits === 0 ? 0 : Math.max((m.commits / maxCommits) * 140, 8);
+                                                    return (
+                                                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                                                            <div className="relative w-full flex items-end justify-center">
+                                                                <span className="absolute -top-6 text-xs bg-foreground text-background px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                                                    {m.commits} commits
+                                                                </span>
+                                                                <motion.div
+                                                                    initial={{ height: 0 }}
+                                                                    animate={{ height: h }}
+                                                                    transition={{ duration: 0.6, delay: i * 0.08 }}
+                                                                    className="w-full rounded-t-md bg-gradient-to-t from-primary to-primary/60"
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs text-muted-foreground">{m.label}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <p className="text-center text-sm text-muted-foreground mt-4">
+                                                <span className="font-bold font-mono text-foreground">{metrics.commitCount6Months}</span> commits in the last 6 months
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                                {/* Top Languages */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Code2 className="w-4 h-4 text-primary" /> Top Languages
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {topLanguages.map(lang => (
+                                                    <div key={lang.name}>
+                                                        <div className="flex justify-between text-sm mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span
+                                                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                                                    style={{ backgroundColor: LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1" }}
+                                                                />
+                                                                <span className="font-medium">{lang.name}</span>
+                                                            </div>
+                                                            <span className="text-muted-foreground font-mono">{lang.percent}%</span>
+                                                        </div>
+                                                        <ProgressBar
+                                                            value={lang.percent}
+                                                            color={LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1"}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                                {/* LeetCode Section */}
+                                {lc && lc.solved?.total > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center justify-between">
+                                                    <span className="flex items-center gap-2">
+                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                                    </span>
+                                                    <span className="text-sm font-normal text-muted-foreground">
+                                                        Score: <span className="font-bold font-mono text-foreground">{lcScore}</span>/100
+                                                    </span>
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                {/* Solved breakdown */}
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-secondary">
+                                                        <div className="text-lg font-bold font-mono">{lc.solved.total}</div>
+                                                        <div className="text-xs text-muted-foreground">Total</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                                                        <div className="text-lg font-bold font-mono text-green-500">{lc.solved.easy}</div>
+                                                        <div className="text-xs text-muted-foreground">Easy</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                                                        <div className="text-lg font-bold font-mono text-yellow-500">{lc.solved.medium}</div>
+                                                        <div className="text-xs text-muted-foreground">Medium</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                                                        <div className="text-lg font-bold font-mono text-red-500">{lc.solved.hard}</div>
+                                                        <div className="text-xs text-muted-foreground">Hard</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Contest rating */}
+                                                {lc.contest?.rating > 0 && (
+                                                    <div className="flex items-center gap-0 rounded-lg bg-secondary overflow-hidden divide-x divide-border">
+                                                        <div className="flex-1 text-center py-2.5 px-3">
+                                                            <div className="text-xs text-muted-foreground">Rating</div>
+                                                            <div className="text-base font-bold font-mono">{Math.round(lc.contest.rating)}</div>
+                                                        </div>
+                                                        {lc.contest.globalRank && (
+                                                            <div className="flex-1 text-center py-2.5 px-3">
+                                                                <div className="text-xs text-muted-foreground">Global Rank</div>
+                                                                <div className="text-base font-bold font-mono">#{lc.contest.globalRank.toLocaleString()}</div>
+                                                            </div>
+                                                        )}
+                                                        {lc.contest.contestsAttended > 0 && (
+                                                            <div className="flex-1 text-center py-2.5 px-3">
+                                                                <div className="text-xs text-muted-foreground">Contests</div>
+                                                                <div className="text-base font-bold font-mono">{lc.contest.contestsAttended}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Top algorithm tags */}
+                                                {topAlgoTags.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-2">Top Algorithm Tags</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {topAlgoTags.map(tag => (
+                                                                <span key={tag.tagName}
+                                                                    className="px-2 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
+                                                                    {tag.tagName} · {tag.problemsSolved}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                )}
+                            </div>
+
+                            {/* RIGHT: Score breakdown + Skills + Quality + Badges */}
+                            <div className="space-y-6">
+
+                                {/* Score breakdown */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <BarChart3 className="w-4 h-4 text-primary" /> Score Breakdown
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2.5">
+                                                {scoreBreakdown.map(({ key, label, value }) => (
+                                                    <div key={key}>
+                                                        <div className="flex justify-between text-xs mb-1">
+                                                            <span className="text-muted-foreground">{label}</span>
+                                                            <span className="font-mono font-medium">{value}</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                whileInView={{ width: `${value}%` }}
+                                                                viewport={{ once: true }}
+                                                                transition={{ duration: 0.6, ease: "easeOut" }}
+                                                                className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                                {/* Skills */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Zap className="w-4 h-4 text-primary" /> Skills
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(metrics.skills || []).map(skill => {
+                                                    const key = skill.toLowerCase();
+                                                    return (
+                                                        <div key={skill}
+                                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs hover:border-primary/40 transition-colors">
+                                                            {TECH_ICONS[key] && (
+                                                                <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={skill} />
+                                                            )}
+                                                            <span>{skill}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                                {/* Quality Indicators */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Shield className="w-4 h-4 text-primary" /> Project Quality
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-2">
+                                                {qualityItems.map(item => (
+                                                    <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            {item.count > 0
+                                                                ? <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                                : <XCircle className="w-4 h-4 text-muted-foreground" />
+                                                            }
+                                                            <span className={item.count > 0 ? "" : "text-muted-foreground"}>{item.label}</span>
+                                                        </div>
+                                                        {item.count > 0 && (
+                                                            <span className="text-xs text-muted-foreground font-mono">{item.count} repos</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                            </div>
+                        </div>
+
+                        {/* ── BADGES + PUBLIC PROFILE ROW ── */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {badges.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                >
+                                    <Card className="h-full">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Award className="w-4 h-4 text-yellow-500" /> Badges
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex flex-wrap gap-2">
+                                                {badges.map((badge, i) => (
+                                                    <span key={i}
+                                                        className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary">
+                                                        {badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )}
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                className={badges.length === 0 ? "sm:col-span-2 max-w-md" : ""}
+                            >
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <ExternalLink className="w-4 h-4 text-primary" /> Public Profile
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div className="flex items-center gap-2 bg-secondary rounded-lg p-2.5">
+                                            <code className="text-xs flex-1 truncate text-muted-foreground">
+                                                {window.location.origin}/profile/{username}
+                                            </code>
+                                            <button
+                                                onClick={copyProfileUrl}
+                                                className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0"
+                                            >
+                                                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        <a
+                                            href={`/profile/${username}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                                        >
+                                            <ExternalLink className="w-3 h-3" /> View public profile
+                                        </a>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+
+                        {/* ── SKILL RADAR ── */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }} transition={{ duration: 0.4 }}
+                            className="max-w-3xl mx-auto w-full"
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Activity className="w-4 h-4 text-primary" /> Skill Profile
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <RadarChart data={radarData}>
+                                            <PolarGrid stroke="hsl(var(--border))" />
+                                            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
+                                            <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                                            <Tooltip
+                                                contentStyle={{
+                                                    backgroundColor: "hsl(var(--card))",
+                                                    border: "1px solid hsl(var(--border))",
+                                                    borderRadius: "8px",
+                                                    fontSize: "12px"
+                                                }}
+                                            />
+                                            <Radar
+                                                name="Score" dataKey="value"
+                                                stroke="#6366f1" fill="#6366f1" fillOpacity={0.25}
+                                                strokeWidth={2}
+                                            />
+                                        </RadarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
 
                     </div>
                 )}

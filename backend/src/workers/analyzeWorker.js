@@ -17,6 +17,7 @@ import { analyzeLeetcode } from "../services/leetcode/leetcodeService.js";
 
 import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
 import { computeLeetCodeScore } from "../services/scoring/scoreLeetCode.js";
+import { cacheDelPattern } from "../services/cache/cacheService.js";
 
 dotenv.config();
 await mongoose.connect(process.env.MONGO_URI);
@@ -152,12 +153,15 @@ const worker = new Worker(
 
       /* -------- Scoring Engine -------- */
 
-      const scoreData = computeGitHireScore(rawMetrics);
-
-      console.log("GitHire Score:", scoreData.finalScore);
-
+      // Compute LC score first so it can be blended into overall score
       const leetcodeScore = computeLeetCodeScore(leetcodeMetrics);
       console.log("LeetCode Score:", leetcodeScore);
+
+      const scoreData = computeGitHireScore(rawMetrics, leetcodeScore);
+      console.log("GitHire Score:", scoreData.finalScore);
+      if (leetcodeScore > 0) {
+        console.log(`LC contributed ${scoreData.leetcodeContribution} pts to overall score`);
+      }
 
       /* -------- Save Result -------- */
       let badges = [];
@@ -185,6 +189,9 @@ const worker = new Worker(
           updatedAt: new Date()
         }
       );
+      // Invalidate all leaderboard caches — scores changed
+      await cacheDelPattern("leaderboard:*");
+
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`Worker completed in ${totalTime}s`);
       return {
