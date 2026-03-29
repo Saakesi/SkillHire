@@ -80,6 +80,27 @@ const rawMetricsSchema = new mongoose.Schema({
     default: 0
   },
 
+  // ===== Code Review metrics =====
+  reviewsGiven: {
+    type: Number,
+    default: 0
+  },
+
+  approvals: {
+    type: Number,
+    default: 0
+  },
+
+  changesRequested: {
+    type: Number,
+    default: 0
+  },
+
+  reviewComments: {
+    type: Number,
+    default: 0
+  },
+
   // ===== Project Quality =====
   qualityIndicators: {
     type: Map,

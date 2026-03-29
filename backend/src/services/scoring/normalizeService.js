@@ -15,6 +15,11 @@ export function normalizeMetrics(raw) {
 
     console.log("QUALITY SCORE:", qualityScore);
 
+  // Code review score: volume (60%) + depth via comments (40%)
+  const reviewVolume = Math.min((raw.reviewsGiven || 0) / 50 * 60, 60);
+  const reviewDepth = Math.min((raw.reviewComments || 0) / 100 * 40, 40);
+  const codeReviewScore = reviewVolume + reviewDepth;
+
   return {
     repoScore: scale(raw.repoCount, 30),
 
@@ -39,6 +44,8 @@ export function normalizeMetrics(raw) {
 
     frameworkScore: scale(raw.frameworks?.length || 0, 5),
 
-    projectQualityScore: Math.min(qualityScore, 100)
+    projectQualityScore: Math.min(qualityScore, 100),
+
+    codeReviewScore: Math.min(codeReviewScore, 100)
   };
 }
