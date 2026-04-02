@@ -50,6 +50,8 @@ const ProfileSchema = new mongoose.Schema({
   currentCompany: { type: String },
   role: { type: String },
   openToReferral: { type: Boolean, default: false },
+  referralCompany: { type: String },
+referralNote:    { type: String },
   score: { type: Number, default: 0 },
 
 
