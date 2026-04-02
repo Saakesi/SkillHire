@@ -183,6 +183,7 @@ const analysisSchema = new mongoose.Schema({
     default: [],
     index: true
   },
+  eduBadge: { type: String, default: null },
   leetcodeScore: {
   type: Number,
   default: 0

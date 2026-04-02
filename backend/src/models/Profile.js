@@ -39,6 +39,7 @@ const ProfileSchema = new mongoose.Schema({
 
 
   name: { type: String },
+  connectionCount: { type: Number, default: 0 },
   college: {
     id: { type: String },
     name: { type: String },
@@ -64,6 +65,10 @@ const ProfileSchema = new mongoose.Schema({
   company: { type: String, default: "" },
   designation: { type: String, default: "" },
   shortlists: { type: [shortlistSchema], default: undefined },
+  collegeEmail:    { type: String,  default: null },
+collegeDomain:   { type: String,  default: null },
+edu_verified:    { type: Boolean, default: false },
+edu_verified_at: { type: Date,    default: null },
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
