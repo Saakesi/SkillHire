@@ -1,4 +1,4 @@
-# 🚀 SkillHire
+# SkillHire
 
 <p align="center">
   <h3 align="center">Hire by proof, not guesswork</h3>
