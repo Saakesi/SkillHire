@@ -93,12 +93,26 @@ export const getAnalyzeStatus = async (req, res) => {
       await analysis.save();
     }
 
+     const eduBadge =
+      analysis.eduBadge
+      ?? (profile.edu_verified && profile.collegeDomain
+          ? `${getCollegeName(profile.collegeDomain)} verified`
+          : null);
+
+    // Replace raw "edu_verified" string with human-readable college name
+    const resolvedBadges = (analysis.badges || []).map(badge =>
+      badge === "edu_verified" && eduBadge
+        ? eduBadge                       // "IIT Bombay verified"
+        : badge                          // "polyglot" etc unchanged
+    );
+
     return res.json({
       status: analysis.status,
       overallScore,
       scoreBreakdown,
       rawMetrics: analysis.rawMetrics,
-      badges: analysis.badges,
+      badges:resolvedBadges,   
+      eduBadge,
       leetcodeScore: analysis.leetcodeScore,
       leetcodeMetrics: analysis.leetcodeMetrics,
       updatedAt: analysis.updatedAt
