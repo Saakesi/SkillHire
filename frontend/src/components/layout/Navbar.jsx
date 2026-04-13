@@ -146,15 +146,6 @@ export const Navbar = () => {
                         Dashboard
                       </Link>
 
-                      <Link
-                        to="/settings"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </Link>
-
                       <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-accent"
