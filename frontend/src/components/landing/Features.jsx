@@ -1,54 +1,54 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  GitBranch,
+  Trophy,
   Search,
   BarChart3,
-  Shield,
-  Zap,
+  MessageSquare,
+  UserCheck,
+  Share2,
   Users,
-  Code2,
-  Star,
-  TrendingUp
+  Shield,
+  Layers
 } from 'lucide-react';
 
 const features = [
   {
-    icon: <GitBranch className="w-6 h-6" />,
-    title: 'GitHub Analysis',
-    description: 'We analyze repositories, commits, stars, and contribution patterns to build a complete developer profile.',
+    icon: <BarChart3 className="w-6 h-6" />,
+    title: 'Real Developer Scoring',
+    description: 'Profiles are scored from real GitHub activity like repositories, commits, reviews, stars, and project quality signals.',
   },
   {
-    icon: <BarChart3 className="w-6 h-6" />,
-    title: 'Smart Ranking',
-    description: 'Our algorithm scores developers based on code quality, activity, and language expertise.',
+    icon: <Trophy className="w-6 h-6" />,
+    title: 'GitHub + LeetCode Profile',
+    description: 'Showcase coding depth with combined GitHub analytics, LeetCode stats, language strengths, and skill badges.',
   },
   {
     icon: <Search className="w-6 h-6" />,
-    title: 'Advanced Search',
-    description: 'Filter by programming language, location, experience level, and minimum star count.',
+    title: 'Recruiter Search & Shortlists',
+    description: 'Recruiters can search indexed developers with score and skill filters, then save candidates into shortlists.',
   },
   {
-    icon: <Shield className="w-6 h-6" />,
-    title: 'Verified Skills',
-    description: 'Skills are extracted from actual code, not self-reported. What you see is what you get.',
+    icon: <Share2 className="w-6 h-6" />,
+    title: 'Referral Workflows',
+    description: 'Users can discover open referral profiles, send requests with notes, and track incoming and sent referral status.',
   },
   {
-    icon: <Zap className="w-6 h-6" />,
-    title: 'Real-time Updates',
-    description: 'Profiles sync with GitHub to show the latest activity and contributions.',
+    icon: <UserCheck className="w-6 h-6" />,
+    title: 'LinkedIn-Style Connections',
+    description: 'Both developers and recruiters can send, accept, or decline connection requests before starting direct chat.',
   },
   {
-    icon: <Users className="w-6 h-6" />,
-    title: 'Team Collaboration',
-    description: 'Share shortlists with your team and collaborate on hiring decisions.',
+    icon: <MessageSquare className="w-6 h-6" />,
+    title: 'Real-Time Messaging',
+    description: 'Accepted connections and referrals unlock socket-powered messaging with inbox, unread counts, and live updates.',
   },
 ];
 
 const stats = [
-  { icon: <Code2 className="w-8 h-8" />, value: '50+', label: 'Languages Supported' },
-  { icon: <Star className="w-8 h-8" />, value: '98%', label: 'Match Accuracy' },
-  { icon: <TrendingUp className="w-8 h-8" />, value: '3x', label: 'Faster Hiring' },
+  { icon: <Layers className="w-8 h-8" />, value: '2 Roles', label: 'Developer + Recruiter Workflows' },
+  { icon: <Shield className="w-8 h-8" />, value: 'Role-Based', label: 'Protected Dashboards & Access' },
+  { icon: <Users className="w-8 h-8" />, value: 'Connections', label: 'Referral + Messaging Graph' },
 ];
 
 export const Features = () => {
@@ -69,11 +69,11 @@ export const Features = () => {
             Features
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Everything you need to hire{' '}
-            <span className="gradient-text">top developers</span>
+            Hiring + Networking built for{' '}
+            <span className="gradient-text">real engineering signals</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our platform provides comprehensive tools to evaluate, compare, and hire developers based on their actual code.
+            SkillHire combines developer growth tools and recruiter workflows, from analysis and referrals to connections and messaging.
           </p>
         </motion.div>
 

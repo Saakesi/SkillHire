@@ -6,10 +6,13 @@ import {
   Bookmark, BookmarkCheck, ChevronDown, Plus, CheckCircle2,
 } from "lucide-react";
 import { Avatar } from "../ui/Avatar";
+import { connectionService } from "../../services/connectionService";
 import { scoreBadgeColor, devTypeBadge } from "./helpers";
 
 export default function DeveloperCard({ dev, shortlists, onAddToShortlist, onRemoveFromShortlist }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectStatus, setConnectStatus] = useState("idle");
   const ref = useRef(null);
 
   const inShortlist = shortlists.some(s => s.developers?.some(d => d.githubId === dev.githubId));
@@ -21,6 +24,19 @@ export default function DeveloperCard({ dev, shortlists, onAddToShortlist, onRem
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    setConnectStatus("idle");
+    try {
+      await connectionService.requestConnection(dev.username, `Let's connect regarding your profile on SkillHire.`);
+      setConnectStatus("sent");
+    } catch (err) {
+      setConnectStatus(err.response?.data?.error || "Failed to send request");
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   return (
     <div className="group rounded-xl border border-border bg-card hover:border-primary/30 transition-all p-4 space-y-3">
@@ -84,16 +100,24 @@ export default function DeveloperCard({ dev, shortlists, onAddToShortlist, onRem
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-1 border-t border-border">
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border">
         <Link to={`/profile/${dev.username}`} target="_blank"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-border hover:bg-secondary transition-colors">
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-border hover:bg-secondary transition-colors shrink-0 whitespace-nowrap">
           <ExternalLink className="w-3 h-3" /> View Profile
         </Link>
 
-        <div className="relative ml-auto" ref={ref}>
+        <button
+          onClick={handleConnect}
+          disabled={connecting || connectStatus === "sent"}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-primary/30 text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 shrink-0 whitespace-nowrap"
+        >
+          {connectStatus === "sent" ? "Requested" : connecting ? "Sending..." : "Connect"}
+        </button>
+
+        <div className="relative ml-auto shrink-0" ref={ref}>
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${inShortlist
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap ${inShortlist
                 ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
                 : "bg-secondary border border-border hover:border-primary/30"
               }`}
@@ -142,6 +166,9 @@ export default function DeveloperCard({ dev, shortlists, onAddToShortlist, onRem
           </AnimatePresence>
         </div>
       </div>
+      {connectStatus && connectStatus !== "sent" && connectStatus !== "idle" && (
+        <p className="text-xs text-destructive">{connectStatus}</p>
+      )}
     </div>
   );
 }

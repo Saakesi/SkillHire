@@ -171,13 +171,41 @@ export const updateRecruiterProfile = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== "recruiter") return res.status(403).json({ error: "Forbidden" });
 
-    const { name, company, designation } = req.body;
+    const {
+      name,
+      company,
+      designation,
+      openToReferral,
+      referralCompany,
+      referralNote,
+    } = req.body;
+
+    const update = {
+      name,
+      company,
+      designation,
+      updatedAt: new Date(),
+    };
+
+    if (typeof openToReferral === "boolean") {
+      update.openToReferral = openToReferral;
+      update.referralCompany = openToReferral ? (referralCompany || "") : "";
+      update.referralNote = openToReferral ? (referralNote || "") : "";
+    }
+
     const profile = await Profile.findByIdAndUpdate(
       decoded.profileId,
-      { name, company, designation, updatedAt: new Date() },
+      update,
       { new: true }
     );
-    return res.json({ name: profile.name, company: profile.company, designation: profile.designation });
+    return res.json({
+      name: profile.name,
+      company: profile.company,
+      designation: profile.designation,
+      openToReferral: profile.openToReferral,
+      referralCompany: profile.referralCompany,
+      referralNote: profile.referralNote,
+    });
   } catch {
     res.status(500).json({ error: "Update failed" });
   }

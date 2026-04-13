@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
- 
+
 const messageSchema = new mongoose.Schema(
   {
     // One of these will be set depending on how the chat was unlocked
@@ -13,7 +13,7 @@ const messageSchema = new mongoose.Schema(
       ref: "Referral",
       default: null
     },
- 
+
     // Always store both participants for easy querying
     sender: {
       type: mongoose.Schema.Types.ObjectId,
@@ -25,14 +25,14 @@ const messageSchema = new mongoose.Schema(
       ref: "Profile",
       required: true
     },
- 
+
     text: {
       type: String,
       required: true,
       trim: true,
       maxlength: 2000
     },
- 
+
     readAt: {
       type: Date,
       default: null
@@ -40,9 +40,9 @@ const messageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
- 
-// Fast lookup for chat history between two users
+
+// indexing
 messageSchema.index({ sender: 1, receiver: 1 });
 messageSchema.index({ receiver: 1, sender: 1 });
- 
+
 export default mongoose.model("Message", messageSchema);

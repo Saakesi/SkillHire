@@ -17,7 +17,7 @@ export const AuthCallback = () => {
 
       // Role-based redirect
       if (user.role === 'recruiter') {
-        navigate('/recruiter');
+        navigate('/recruiter/dashboard');
       } else {
         navigate('/dashboard');
       }

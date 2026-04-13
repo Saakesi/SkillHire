@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
     Code2, Star, GitFork, GitPullRequest, GitMerge, Flame,
     Calendar, Activity, ExternalLink, AlertCircle, PlayCircle,
@@ -161,7 +162,7 @@ function SectionTitle({ icon, children }) {
 }
 
 export const DeveloperDashboard = () => {
-    const { profile } = useAuth();
+    const { profile, isAuthenticated } = useAuth();
 
     const [analysis, setAnalysis] = useState(null);
     const [metrics, setMetrics] = useState(null);
@@ -185,6 +186,9 @@ export const DeveloperDashboard = () => {
     const [branch, setBranch] = useState(profile?.branch || "");
     const [graduationYear, setGraduationYear] = useState(profile?.graduationYear || "");
     const [savingCollege, setSavingCollege] = useState(false);
+    const [pendingConnections, setPendingConnections] = useState([]);
+    const [connectionsLoading, setConnectionsLoading] = useState(false);
+    const [connectionActioningId, setConnectionActioningId] = useState("");
 
     const username = profile?.username;
 
@@ -214,6 +218,49 @@ export const DeveloperDashboard = () => {
             })
             .catch(console.error);
     }, [username]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const loadPendingConnections = async () => {
+            setConnectionsLoading(true);
+            try {
+                const res = await axios.get(`${API}/api/connections/pending`, { withCredentials: true });
+                setPendingConnections(res.data?.pending || []);
+            } catch {
+                setPendingConnections([]);
+            } finally {
+                setConnectionsLoading(false);
+            }
+        };
+
+        loadPendingConnections();
+    }, [isAuthenticated]);
+
+    const refreshPendingConnections = async () => {
+        const res = await axios.get(`${API}/api/connections/pending`, { withCredentials: true });
+        setPendingConnections(res.data?.pending || []);
+    };
+
+    const acceptConnection = async (connectionId) => {
+        setConnectionActioningId(connectionId);
+        try {
+            await axios.post(`${API}/api/connections/accept/${connectionId}`, {}, { withCredentials: true });
+            await refreshPendingConnections();
+        } finally {
+            setConnectionActioningId("");
+        }
+    };
+
+    const declineConnection = async (connectionId) => {
+        setConnectionActioningId(connectionId);
+        try {
+            await axios.post(`${API}/api/connections/decline/${connectionId}`, {}, { withCredentials: true });
+            await refreshPendingConnections();
+        } finally {
+            setConnectionActioningId("");
+        }
+    };
 
     // Poll while analysis is running
     useEffect(() => {
@@ -622,6 +669,61 @@ export const DeveloperDashboard = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* ─── CONNECTION REQUESTS ─── */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <MessageSquare className="w-4 h-4 text-primary" /> Incoming Connection Requests
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {connectionsLoading && (
+                                <p className="text-sm text-muted-foreground">Loading requests...</p>
+                            )}
+
+                            {!connectionsLoading && pendingConnections.length === 0 && (
+                                <p className="text-sm text-muted-foreground">No pending connection requests.</p>
+                            )}
+
+                            {pendingConnections.map((item) => (
+                                <div key={item._id} className="rounded-xl border border-border p-3 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar src={item.requester?.avatarUrl} name={item.requester?.name || item.requester?.username} size="sm" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium truncate">{item.requester?.name || item.requester?.username}</p>
+                                            <p className="text-xs text-muted-foreground truncate">@{item.requester?.username}</p>
+                                        </div>
+                                        <Link to={`/profile/${item.requester?.username}`} className="text-xs text-primary hover:underline">
+                                            View profile
+                                        </Link>
+                                    </div>
+
+                                    {item.note && <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{item.note}</p>}
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            size="sm"
+                                            loading={connectionActioningId === item._id}
+                                            onClick={() => acceptConnection(item._id)}
+                                        >
+                                            Accept
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={connectionActioningId === item._id}
+                                            onClick={() => declineConnection(item._id)}
+                                        >
+                                            Decline
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* ─── EMPTY STATE ─── */}

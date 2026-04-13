@@ -2,9 +2,13 @@ import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import http from "http";
+import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import authRoutes from "./src/routes/authRoutes.js";
 import profileRoutes from "./src/routes/profileRoutes.js";
 import mongoose from "mongoose";
+import Profile from "./src/models/Profile.js";
 import analyzeRoutes from "./src/routes/analyzeRoutes.js";
 import rankingroutes from "./src/routes/rankingRoutes.js";
 import collegeRoutes from "./src/routes/collegeRoutes.js";
@@ -22,6 +26,60 @@ console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
 
 
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
+
+app.set("io", io);
+
+function parseCookies(cookieHeader = "") {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((acc, part) => {
+      const separatorIndex = part.indexOf("=");
+      if (separatorIndex === -1) return acc;
+      const key = part.slice(0, separatorIndex).trim();
+      const value = decodeURIComponent(part.slice(separatorIndex + 1).trim());
+      acc[key] = value;
+      return acc;
+    }, {});
+}
+
+io.use(async (socket, next) => {
+  try {
+    const cookies = parseCookies(socket.handshake.headers.cookie || "");
+    const token = cookies.auth;
+    if (!token) {
+      return next(new Error("Not authenticated"));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const profile = decoded.githubId
+      ? await Profile.findOne({ githubId: decoded.githubId }).select("_id username")
+      : await Profile.findById(decoded.profileId).select("_id username");
+
+    if (!profile) {
+      return next(new Error("User not found"));
+    }
+
+    socket.user = { _id: profile._id.toString(), username: profile.username };
+    next();
+  } catch (error) {
+    next(new Error("Unauthorized socket"));
+  }
+});
+
+io.on("connection", (socket) => {
+  socket.join(`user:${socket.user._id}`);
+});
 
 app.use(cors({
   origin: "http://localhost:5173",
@@ -54,7 +112,7 @@ app.get("/api/me", (req, res) => {
   res.json({ authenticated: true });
 });
 
-app.listen(5000, () => {
+server.listen(5000, () => {
   console.log("Server running on port 5000");
 });
 

@@ -51,7 +51,7 @@ const ProfileSchema = new mongoose.Schema({
   role: { type: String },
   openToReferral: { type: Boolean, default: false },
   referralCompany: { type: String },
-referralNote:    { type: String },
+  referralNote: { type: String },
   score: { type: Number, default: 0 },
 
 
@@ -61,16 +61,16 @@ referralNote:    { type: String },
     default: "developer",
   },
 
-// for recruiter
+  // for recruiter
   email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
   passwordHash: { type: String, select: false },
   company: { type: String, default: "" },
   designation: { type: String, default: "" },
   shortlists: { type: [shortlistSchema], default: undefined },
-  collegeEmail:    { type: String,  default: null },
-collegeDomain:   { type: String,  default: null },
-edu_verified:    { type: Boolean, default: false },
-edu_verified_at: { type: Date,    default: null },
+  collegeEmail: { type: String, default: null },
+  collegeDomain: { type: String, default: null },
+  edu_verified: { type: Boolean, default: false },
+  edu_verified_at: { type: Date, default: null },
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
