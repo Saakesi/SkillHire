@@ -6,22 +6,19 @@ export const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
-    Product: [
+    Platform: [
       { label: 'Features', href: '/#features' },
-      { label: 'For Developers', href: '/login' },
-      { label: 'For Recruiters', href: '/recruiters' },
-      { label: 'Pricing', href: '/pricing' },
+      { label: 'Leaderboard', href: '/leaderboard' },
+      { label: 'Developer Login', href: '/login' },
+      { label: 'Recruiter Login', href: '/recruiter' },
     ],
     Company: [
       { label: 'About', href: '/about' },
-      { label: 'Blog', href: '/blog' },
-      { label: 'Careers', href: '/careers' },
       { label: 'Contact', href: '/contact' },
     ],
     Legal: [
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms', href: '/terms' },
-      { label: 'Security', href: '/security' },
     ],
   };
 

@@ -22,11 +22,11 @@ export const CTA = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
-            Ready to find your next hire?
+            Build better hiring conversations
           </h2>
           <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto">
-            Join thousands of companies using SkillHire to find and hire the best developers.
-            Get started for free.
+            Analyze profiles, send referrals, grow your network, and chat in real time.
+            SkillHire is free for developers and recruiter-ready from day one.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -36,7 +36,7 @@ export const CTA = () => {
                 className="bg-white text-gray-900 hover:bg-white/90 shadow-xl dark:bg-white dark:text-gray-900"
                 icon={<Github className="w-5 h-5" />}
               >
-                Get Started Free
+                Start as Developer
               </Button>
 
             </Link>
@@ -48,13 +48,13 @@ export const CTA = () => {
                 icon={<ArrowRight className="w-5 h-5" />}
                 iconPosition="right"
               >
-                Explore as Recruiter
+                Continue as Recruiter
               </Button>
             </Link>
           </div>
 
           <p className="mt-8 text-sm text-white/60">
-            No credit card required · Free forever for developers
+            No credit card required. Join thousands of developers and recruiters revolutionizing the hiring process.    
           </p>
         </motion.div>
       </div>

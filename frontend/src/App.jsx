@@ -5,6 +5,10 @@ import Leaderboard from "./pages/Leaderboard";
 import PublicProfile from "./pages/PublicProfile";
 import RecruiterAuth from "./pages/RecruiterAuth";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import LandingPage from "./components/landing/LandingPage";
 import Referrals from "./pages/Referrals";
 import Messages from "./pages/Messages";
@@ -36,6 +40,10 @@ export default function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile/:username" element={<PublicProfile />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
 
             {/* Recruiter */}
             <Route path="/recruiter" element={<RecruiterAuth />} />
