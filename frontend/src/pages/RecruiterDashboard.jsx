@@ -8,8 +8,12 @@ import { useAuth } from "../context/AuthContext";
 import DashboardNav from "../components/recruiter/DashboardNav";
 import StatCard from "../components/recruiter/StatCard";
 import SearchTab from "../components/recruiter/SearchTab";
+import ConnectionsTab from "../components/recruiter/ConnectionsTab";
+import ReferralsTab from "../components/recruiter/ReferralsTab";
 import ShortlistsTab from "../components/recruiter/ShortlistsTab";
 import SettingsTab from "../components/recruiter/SettingsTab";
+import Messages from "./Messages";
+import { referralService } from "../services/referralService";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -21,6 +25,16 @@ export default function RecruiterDashboard() {
   const [stats, setStats] = useState(null);
   const [shortlists, setShortlists] = useState([]);
   const [shortlistsLoading, setShortlistsLoading] = useState(false);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [pendingConnections, setPendingConnections] = useState([]);
+  const [acceptedConnections, setAcceptedConnections] = useState([]);
+  const [connectionActioningId, setConnectionActioningId] = useState("");
+  const [referralsLoading, setReferralsLoading] = useState(false);
+  const [pendingReferrals, setPendingReferrals] = useState([]);
+  const [acceptedReferrals, setAcceptedReferrals] = useState([]);
+  const [receivedReferrals, setReceivedReferrals] = useState([]);
+  const [referralActioningId, setReferralActioningId] = useState("");
+  const [messageTargetUsername, setMessageTargetUsername] = useState("");
 
 
 
@@ -35,6 +49,57 @@ export default function RecruiterDashboard() {
     axios.get(`${API}/api/recruiter/stats`, { withCredentials: true })
       .then(res => setStats(res.data))
       .catch(() => { });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadConnections = async () => {
+      setConnectionsLoading(true);
+      try {
+        const [pendingRes, acceptedRes] = await Promise.all([
+          axios.get(`${API}/api/connections/pending`, { withCredentials: true }),
+          axios.get(`${API}/api/connections/list`, { withCredentials: true }),
+        ]);
+
+        setPendingConnections(pendingRes.data?.pending || []);
+        setAcceptedConnections(acceptedRes.data?.connections || []);
+      } catch {
+        setPendingConnections([]);
+        setAcceptedConnections([]);
+      } finally {
+        setConnectionsLoading(false);
+      }
+    };
+
+    loadConnections();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const loadReferrals = async () => {
+      setReferralsLoading(true);
+      try {
+        const [incomingRes, sentRes] = await Promise.all([
+          referralService.getIncoming(),
+          referralService.getSent(),
+        ]);
+
+        setPendingReferrals(incomingRes.referrals || []);
+        setAcceptedReferrals((sentRes.referrals || []).filter((item) => item.status === "accepted"));
+        const receivedRes = await axios.get(`${API}/api/referrals/received`, { withCredentials: true });
+        setReceivedReferrals(receivedRes.data?.referrals || []);
+      } catch {
+        setPendingReferrals([]);
+        setAcceptedReferrals([]);
+        setReceivedReferrals([]);
+      } finally {
+        setReferralsLoading(false);
+      }
+    };
+
+    loadReferrals();
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -78,6 +143,78 @@ export default function RecruiterDashboard() {
     setShortlists(prev => prev.filter(s => s._id !== id));
   };
 
+  const refreshConnections = async () => {
+    setConnectionsLoading(true);
+    const [pendingRes, acceptedRes] = await Promise.all([
+      axios.get(`${API}/api/connections/pending`, { withCredentials: true }),
+      axios.get(`${API}/api/connections/list`, { withCredentials: true }),
+    ]);
+
+    setPendingConnections(pendingRes.data?.pending || []);
+    setAcceptedConnections(acceptedRes.data?.connections || []);
+    setConnectionsLoading(false);
+  };
+
+  const acceptConnection = async (connectionId) => {
+    setConnectionActioningId(connectionId);
+    try {
+      await axios.post(`${API}/api/connections/accept/${connectionId}`, {}, { withCredentials: true });
+      await refreshConnections();
+    } finally {
+      setConnectionActioningId("");
+    }
+  };
+
+  const declineConnection = async (connectionId) => {
+    setConnectionActioningId(connectionId);
+    try {
+      await axios.post(`${API}/api/connections/decline/${connectionId}`, {}, { withCredentials: true });
+      await refreshConnections();
+    } finally {
+      setConnectionActioningId("");
+    }
+  };
+
+  const refreshReferrals = async () => {
+    setReferralsLoading(true);
+    const [incomingRes, sentRes] = await Promise.all([
+      referralService.getIncoming(),
+      referralService.getSent(),
+    ]);
+
+    setPendingReferrals(incomingRes.referrals || []);
+    setAcceptedReferrals((sentRes.referrals || []).filter((item) => item.status === "accepted"));
+    const receivedRes = await axios.get(`${API}/api/referrals/received`, { withCredentials: true });
+    setReceivedReferrals(receivedRes.data?.referrals || []);
+    setReferralsLoading(false);
+  };
+
+  const acceptReferral = async (referralId) => {
+    setReferralActioningId(referralId);
+    try {
+      await referralService.acceptReferral(referralId);
+      await refreshReferrals();
+    } finally {
+      setReferralActioningId("");
+    }
+  };
+
+  const rejectReferral = async (referralId) => {
+    setReferralActioningId(referralId);
+    try {
+      await referralService.rejectReferral(referralId);
+      await refreshReferrals();
+    } finally {
+      setReferralActioningId("");
+    }
+  };
+
+  const openEmbeddedMessage = (username) => {
+    if (!username) return;
+    setMessageTargetUsername(username);
+    setTab("messages");
+  };
+
   const handleLogout = async () => { await logout(); navigate("/recruiter"); };
 
   // ── loading state
@@ -116,6 +253,33 @@ export default function RecruiterDashboard() {
               onAddToShortlist={addToShortlist}
               onRemoveFromShortlist={removeFromShortlist}
             />
+          )}
+          {tab === "connections" && (
+            <ConnectionsTab
+              key="connections"
+              pending={pendingConnections}
+              accepted={acceptedConnections}
+              loading={connectionsLoading}
+              actioningId={connectionActioningId}
+              onAccept={acceptConnection}
+              onDecline={declineConnection}
+              onMessageUser={openEmbeddedMessage}
+            />
+          )}
+          {tab === "referrals" && (
+            <ReferralsTab
+              key="referrals"
+              pending={pendingReferrals}
+              accepted={receivedReferrals.filter((item) => item.status === "accepted")}
+              loading={referralsLoading}
+              actioningId={referralActioningId}
+              onAccept={acceptReferral}
+              onReject={rejectReferral}
+              onMessageUser={openEmbeddedMessage}
+            />
+          )}
+          {tab === "messages" && (
+            <Messages key="messages" embedded initialUsername={messageTargetUsername} />
           )}
           {tab === "shortlists" && (
             <ShortlistsTab

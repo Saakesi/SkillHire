@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -37,12 +37,13 @@ export const Navbar = () => {
   const navLinks = isAuthenticated
     ? role === 'recruiter'
       ? [
-          { href: '/recruiter', label: 'Search' },
-          { href: '/shortlist', label: 'Shortlist' },
+          { href: '/recruiter/dashboard', label: 'Dashboard' },
           { href: '/leaderboard', label: 'Leaderboard' },
         ]
       : [
           { href: '/dashboard', label: 'Dashboard' },
+          { href: '/referrals', label: 'Referrals' },
+          { href: '/messages', label: 'Messages' },
           { href: '/leaderboard', label: 'Leaderboard' },
         ]
     : [
@@ -53,9 +54,14 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     setUserMenuOpen(false);
+    setMobileMenuOpen(false);
     await logout();
     navigate('/');
   };
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
@@ -132,7 +138,7 @@ export const Navbar = () => {
                       </div>
 
                       <Link
-                        to="/dashboard"
+                        to={role === 'recruiter' ? '/recruiter/dashboard' : '/dashboard'}
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-accent"
                       >
@@ -192,6 +198,69 @@ export const Navbar = () => {
             </button>
           </div>
         </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="md:hidden pb-4"
+            >
+              <div className="rounded-xl border border-border bg-card/95 shadow-lg overflow-hidden">
+                <div className="p-2">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={`mobile-${link.href}`}
+                      to={link.href}
+                      className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        location.pathname === link.href
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+
+                {!isAuthenticated ? (
+                  <div className="border-t border-border p-3 grid grid-cols-2 gap-2">
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" size="sm" className="w-full">
+                        Login
+                      </Button>
+                    </Link>
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="gradient" size="sm" className="w-full" icon={<Github className="w-4 h-4" />}>
+                        Get Started
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="border-t border-border p-2 space-y-1">
+                    <Link
+                      to={role === 'recruiter' ? '/recruiter/dashboard' : '/dashboard'}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <User className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-accent"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </nav>
   );

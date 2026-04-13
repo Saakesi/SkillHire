@@ -73,7 +73,18 @@ export const getPublicProfile = async (req, res) => {
     const publicData = {
       username: profile.username,
       avatarUrl: profile.avatarUrl,
-      bio: profile.bio
+      bio: profile.bio,
+      name: profile.name,
+      accountType: profile.accountType,
+      company: profile.company,
+      designation: profile.designation,
+      currentCompany: profile.currentCompany,
+      role: profile.role,
+      openToReferral: profile.openToReferral,
+      referralCompany: profile.referralCompany,
+      referralNote: profile.referralNote,
+      collegeDomain: profile.collegeDomain,
+      edu_verified: profile.edu_verified,
     };
 
     //Store in Redis for 10 minutes

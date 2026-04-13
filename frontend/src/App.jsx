@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { LoginPage } from "./pages/Login";
 import { DeveloperDashboard } from './pages/DeveloperDashboard';
 import Leaderboard from "./pages/Leaderboard";
@@ -6,10 +6,24 @@ import PublicProfile from "./pages/PublicProfile";
 import RecruiterAuth from "./pages/RecruiterAuth";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import LandingPage from "./components/landing/LandingPage";
+import Referrals from "./pages/Referrals";
+import Messages from "./pages/Messages";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 import { AuthCallback } from "./pages/AuthCallback";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+
+function HomeRoute() {
+  const { loading, isAuthenticated, role } = useAuth();
+
+  if (loading) return null;
+  if (isAuthenticated && role === "recruiter") {
+    return <Navigate to="/recruiter/dashboard" replace />;
+  }
+
+  return <LandingPage />;
+}
 
 export default function App() {
   return (
@@ -17,7 +31,7 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
@@ -33,6 +47,33 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DeveloperDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/referrals"
+              element={
+                <ProtectedRoute>
+                  <Referrals />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/messages/:username"
+              element={
+                <ProtectedRoute>
+                  <Messages />
                 </ProtectedRoute>
               }
             />

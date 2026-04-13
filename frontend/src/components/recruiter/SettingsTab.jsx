@@ -33,6 +33,9 @@ export default function SettingsTab({ recruiter, onLogout }) {
   const [editName, setEditName] = useState("");
   const [editCompany, setEditCompany] = useState("");
   const [editDesignation, setEditDesignation] = useState("");
+  const [openToReferral, setOpenToReferral] = useState(false);
+  const [referralCompany, setReferralCompany] = useState("");
+  const [referralNote, setReferralNote] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -51,6 +54,9 @@ export default function SettingsTab({ recruiter, onLogout }) {
       setEditName(recruiter.name || "");
       setEditCompany(recruiter.company || "");
       setEditDesignation(recruiter.designation || "");
+      setOpenToReferral(Boolean(recruiter.openToReferral));
+      setReferralCompany(recruiter.referralCompany || "");
+      setReferralNote(recruiter.referralNote || "");
     }
   }, [recruiter]);
 
@@ -59,7 +65,14 @@ export default function SettingsTab({ recruiter, onLogout }) {
     setSavingProfile(true);
     try {
       await axios.put(`${API}/api/recruiter/auth/profile`,
-        { name: editName, company: editCompany, designation: editDesignation },
+        {
+          name: editName,
+          company: editCompany,
+          designation: editDesignation,
+          openToReferral,
+          referralCompany: openToReferral ? referralCompany : "",
+          referralNote: openToReferral ? referralNote : "",
+        },
         { withCredentials: true }
       );
       setProfileSaved(true);
@@ -120,6 +133,47 @@ export default function SettingsTab({ recruiter, onLogout }) {
             <input value={recruiter?.email || ""} disabled
               className="w-full px-3 py-2.5 rounded-lg border border-border bg-secondary/50 text-sm text-muted-foreground cursor-not-allowed" />
           </div>
+
+          <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <p className="text-sm font-medium text-foreground">Open to referral requests</p>
+                <p className="text-xs text-muted-foreground">Show your recruiter profile in referral discovery.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={openToReferral}
+                onChange={(e) => setOpenToReferral(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/40"
+              />
+            </label>
+
+            {openToReferral && (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Referral Company</label>
+                  <input
+                    value={referralCompany}
+                    onChange={(e) => setReferralCompany(e.target.value)}
+                    placeholder="Example: Google, Microsoft"
+                    className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Referral Note</label>
+                  <textarea
+                    value={referralNote}
+                    onChange={(e) => setReferralNote(e.target.value)}
+                    rows={3}
+                    placeholder="Tell users what role or profile you can refer for."
+                    className="w-full px-3 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <button type="submit" disabled={savingProfile}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {savingProfile

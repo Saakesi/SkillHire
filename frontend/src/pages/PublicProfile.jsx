@@ -16,6 +16,9 @@ import { Layout } from "../components/layout/Layout";
 import { Avatar } from "../components/ui/Avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import ProgressBar from "../components/ui/ProgressBar";
+import { Button } from "../components/ui/Button";
+import { useAuth } from "../context/AuthContext";
+import { connectionService } from "../services/connectionService";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -124,10 +127,14 @@ function StatItem({ icon, label, value, color = "text-primary" }) {
 
 export default function PublicProfile() {
     const { username } = useParams();
+    const { isAuthenticated, profile: currentUser } = useAuth();
     const [data, setData] = useState(null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [connecting, setConnecting] = useState(false);
+    const [connectError, setConnectError] = useState("");
+    const [connectionState, setConnectionState] = useState("none");
 
     useEffect(() => {
         if (!username) return;
@@ -135,15 +142,44 @@ export default function PublicProfile() {
             axios.get(`${API}/api/analyze/status/${username}`).catch(() => null),
             axios.get(`${API}/api/profile/${username}`).catch(() => null),
         ]).then(([analysisRes, profileRes]) => {
+            if (profileRes?.data) {
+                setProfile(profileRes.data);
+            }
+
+            const isRecruiterProfile = profileRes?.data?.accountType === "recruiter";
+
             if (!analysisRes?.data || analysisRes.data.status === "failed") {
-                setNotFound(true);
+                if (!isRecruiterProfile) {
+                    setNotFound(true);
+                }
             } else {
                 setData(analysisRes.data);
             }
-            if (profileRes?.data) setProfile(profileRes.data);
         }).finally(() => setLoading(false));
     }, [username]);
 
+    useEffect(() => {
+        if (!isAuthenticated || !username) return;
+
+        axios.get(`${API}/api/connections/status/${username}`, { withCredentials: true })
+            .then((res) => setConnectionState(res.data?.status || "none"))
+            .catch(() => setConnectionState("none"));
+    }, [isAuthenticated, username]);
+
+    const handleConnect = async () => {
+        setConnecting(true);
+        setConnectError("");
+        try {
+            await connectionService.requestConnection(username, `Let's connect on SkillHire.`);
+            setConnectionState("pending");
+        } catch (err) {
+            setConnectError(err.response?.data?.error || "Could not send connection request.");
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const isRecruiterProfile = profile?.accountType === "recruiter";
     const metrics = data?.rawMetrics;
     const lc = data?.leetcodeMetrics;
     const lcScore = data?.leetcodeScore || 0;
@@ -199,7 +235,7 @@ export default function PublicProfile() {
         );
     }
 
-    if (notFound || !data) {
+    if (notFound || (!data && !isRecruiterProfile)) {
         return (
             <Layout showFooter={false}>
                 <div className="max-w-lg mx-auto px-4 py-32 text-center">
@@ -233,15 +269,23 @@ export default function PublicProfile() {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 flex-wrap">
                                     <h1 className="text-2xl font-bold">{displayName}</h1>
-                                    {metrics?.developerType && (
+                                    {isRecruiterProfile ? (
                                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                                            {metrics.developerType}
+                                            Recruiter
                                         </span>
-                                    )}
-                                    {metrics?.primaryLanguage && (
-                                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                                            {metrics.primaryLanguage}
-                                        </span>
+                                    ) : (
+                                        <>
+                                            {metrics?.developerType && (
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                                    {metrics.developerType}
+                                                </span>
+                                            )}
+                                            {metrics?.primaryLanguage && (
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                                                    {metrics.primaryLanguage}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                                 <a
@@ -251,319 +295,376 @@ export default function PublicProfile() {
                                 >
                                     @{username} <ExternalLink className="w-3 h-3" />
                                 </a>
-                                {bio && <p className="text-sm text-muted-foreground mt-1.5 max-w-lg">{bio}</p>}
-                                {updatedAt && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Last analyzed {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                                    </p>
+                                {isRecruiterProfile ? (
+                                    <div className="mt-2 space-y-1.5">
+                                        {profile?.company && (
+                                            <p className="text-sm text-foreground font-medium">{profile.company}</p>
+                                        )}
+                                        {profile?.designation && (
+                                            <p className="text-sm text-muted-foreground">{profile.designation}</p>
+                                        )}
+                                        {bio && <p className="text-sm text-muted-foreground max-w-lg">{bio}</p>}
+                                    </div>
+                                ) : (
+                                    <>
+                                        {bio && <p className="text-sm text-muted-foreground mt-1.5 max-w-lg">{bio}</p>}
+                                        {updatedAt && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Last analyzed {new Date(updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                            </p>
+                                        )}
+                                    </>
                                 )}
+                                {!isRecruiterProfile && isAuthenticated && currentUser?.username !== username && (
+                                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                                        <Button
+                                            size="sm"
+                                            onClick={handleConnect}
+                                            disabled={connecting || connectionState === "pending" || connectionState === "accepted"}
+                                        >
+                                            {connectionState === "accepted"
+                                                ? "Connected"
+                                                : connectionState === "pending"
+                                                    ? "Request Sent"
+                                                    : connecting
+                                                        ? "Sending..."
+                                                        : "Connect"}
+                                        </Button>
+                                        {connectionState === "accepted" && (
+                                            <Link to={`/messages/${username}`} className="text-sm text-primary hover:underline">
+                                                Message
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                                {!isRecruiterProfile && connectError && <p className="text-xs text-destructive mt-2">{connectError}</p>}
                             </div>
 
-                            {/* Score */}
-                            <div className="flex-shrink-0 flex flex-col items-center">
-                                <ScoreCircle score={overallScore} />
-                                <p className="text-xs text-muted-foreground mt-1">SkillHire Score</p>
-                            </div>
+                            {!isRecruiterProfile && (
+                                <div className="flex-shrink-0 flex flex-col items-center">
+                                    <ScoreCircle score={overallScore} />
+                                    <p className="text-xs text-muted-foreground mt-1">SkillHire Score</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-
-                    {/* Stats */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35 }}
-                        className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"
-                    >
-                        <StatItem icon={<Code2 className="w-4 h-4" />} label="Repos" value={metrics?.repoCount} />
-                        <StatItem icon={<Star className="w-4 h-4" />} label="Stars" value={metrics?.totalStars} color="text-yellow-500" />
-                        <StatItem icon={<GitFork className="w-4 h-4" />} label="Forks" value={metrics?.totalForks} />
-                        <StatItem icon={<Activity className="w-4 h-4" />} label="Commits 6M" value={metrics?.commitCount6Months} color="text-green-500" />
-                        <StatItem icon={<GitPullRequest className="w-4 h-4" />} label="PRs" value={metrics?.prCount} />
-                        <StatItem icon={<Flame className="w-4 h-4" />} label="Streak" value={`${metrics?.longestStreak ?? 0}d`} color="text-orange-500" />
-                    </motion.div>
-
-                    {/* Two column: Languages + Skills | LeetCode + Quality */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                        {/* Languages */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }} transition={{ duration: 0.35 }}
-                        >
-                            <Card className="h-full">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-sm">
-                                        <Code2 className="w-4 h-4 text-primary" /> Top Languages
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-3">
-                                        {topLanguages.map(lang => (
-                                            <div key={lang.name}>
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-2.5 h-2.5 rounded-full"
-                                                            style={{ backgroundColor: LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1" }} />
-                                                        <span className="font-medium">{lang.name}</span>
-                                                    </div>
-                                                    <span className="text-muted-foreground font-mono">{lang.percent}%</span>
-                                                </div>
-                                                <ProgressBar value={lang.percent}
-                                                    color={LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1"} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-
-                        {/* Skills + Quality */}
-                        <div className="space-y-6">
-                            <motion.div
-                                initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }} transition={{ duration: 0.35 }}
-                            >
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2 text-sm">
-                                            <Zap className="w-4 h-4 text-primary" /> Skills
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(() => {
-                                                const seen = new Set();
-                                                return (metrics?.skills || []).filter(skill => {
-                                                    const k = SKILL_ICON_KEY(skill);
-                                                    if (seen.has(k)) return false;
-                                                    seen.add(k);
-                                                    return true;
-                                                });
-                                            })().map(skill => {
-                                                const key = SKILL_ICON_KEY(skill);
-                                                return (
-                                                    <div key={key}
-                                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
-                                                        {TECH_ICONS[key] && (
-                                                            <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={skill} />
-                                                        )}
-                                                        <span>{skill}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                            {/* LeetCode languages — deduplicated by normalized icon key */}
-                                            {(() => {
-                                                const ghKeys = new Set((metrics?.skills || []).map(s => SKILL_ICON_KEY(s)));
-                                                return (lc?.languages || [])
-                                                    .filter(l => l.problemsSolved > 0 && !ghKeys.has(SKILL_ICON_KEY(l.languageName)))
-                                                    .sort((a, b) => b.problemsSolved - a.problemsSolved);
-                                            })().map(l => {
-                                                const key = SKILL_ICON_KEY(l.languageName);
-                                                return (
-                                                    <div key={`lc-${l.languageName}`}
-                                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
-                                                        {TECH_ICONS[key] && (
-                                                            <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />
-                                                        )}
-                                                        <span>{l.languageName}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-
-                            <motion.div
-                                initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }} transition={{ duration: 0.35 }}
-                            >
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2 text-sm">
-                                            <Shield className="w-4 h-4 text-primary" /> Project Quality
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {qualityItems.map(item => (
-                                                <div key={item.label}
-                                                    className="flex items-center gap-2 text-sm">
-                                                    {item.count > 0
-                                                        ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                                        : <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                                                    }
-                                                    <span className={item.count > 0 ? "" : "text-muted-foreground"}>
-                                                        {item.label}
-                                                    </span>
-                                                    {item.count > 0 && (
-                                                        <span className="text-xs text-muted-foreground font-mono ml-auto">{item.count}</span>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        </div>
-                    </div>
-
-                    {/* LeetCode */}
-                    {lc && lc.solved?.total > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }} transition={{ duration: 0.35 }}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center justify-between text-sm">
-                                        <span className="flex items-center gap-2">
-                                            <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
-                                        </span>
-                                        <span className="font-normal text-muted-foreground">
-                                            Score <span className="font-bold font-mono text-foreground">{lcScore}</span>/100
-                                        </span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { label: "Total", value: lc.solved.total, cls: "bg-secondary text-foreground" },
-                                            { label: "Easy", value: lc.solved.easy, cls: "bg-green-500/10 border border-green-500/20 text-green-500" },
-                                            { label: "Medium", value: lc.solved.medium, cls: "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500" },
-                                            { label: "Hard", value: lc.solved.hard, cls: "bg-red-500/10 border border-red-500/20 text-red-500" },
-                                        ].map(d => (
-                                            <div key={d.label} className={`text-center py-2.5 rounded-lg ${d.cls}`}>
-                                                <div className="text-lg font-bold font-mono">{d.value}</div>
-                                                <div className="text-xs text-muted-foreground">{d.label}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {lc.contest?.rating > 0 && (
-                                        <div className="flex rounded-lg bg-secondary overflow-hidden divide-x divide-border">
-                                            <div className="flex-1 text-center py-2.5">
-                                                <div className="text-xs text-muted-foreground">Rating</div>
-                                                <div className="text-base font-bold font-mono">{Math.round(lc.contest.rating)}</div>
-                                            </div>
-                                            {lc.contest.globalRank && (
-                                                <div className="flex-1 text-center py-2.5">
-                                                    <div className="text-xs text-muted-foreground">Global Rank</div>
-                                                    <div className="text-base font-bold font-mono">#{lc.contest.globalRank.toLocaleString()}</div>
-                                                </div>
-                                            )}
-                                            {lc.contest.contestsAttended > 0 && (
-                                                <div className="flex-1 text-center py-2.5">
-                                                    <div className="text-xs text-muted-foreground">Contests</div>
-                                                    <div className="text-base font-bold font-mono">{lc.contest.contestsAttended}</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    {topAlgoTags.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 pt-1">
-                                            {topAlgoTags.map(tag => (
-                                                <span key={tag.tagName}
-                                                    className="px-2 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
-                                                    {tag.tagName} · {tag.problemsSolved}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
-                    {/* Code Review */}
-                    {(metrics?.reviewsGiven > 0 || metrics?.approvals > 0) && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }} transition={{ duration: 0.35 }}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-sm">
-                                        <Eye className="w-4 h-4 text-primary" /> Code Review Activity
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {[
-                                            { label: "Reviews Given", value: metrics.reviewsGiven ?? 0, cls: "bg-blue-500/10 border-blue-500/20 text-blue-500" },
-                                            { label: "Approvals", value: metrics.approvals ?? 0, cls: "bg-green-500/10 border-green-500/20 text-green-500" },
-                                            { label: "Changes Requested", value: metrics.changesRequested ?? 0, cls: "bg-orange-500/10 border-orange-500/20 text-orange-500" },
-                                            { label: "Review Comments", value: metrics.reviewComments ?? 0, cls: "bg-primary/10 border-primary/20 text-primary" },
-                                        ].map(d => (
-                                            <div key={d.label} className={`text-center p-3 rounded-xl border ${d.cls}`}>
-                                                <div className={`text-xl font-bold font-mono`}>{d.value}</div>
-                                                <div className="text-xs text-muted-foreground mt-0.5">{d.label}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
-                    {/* Badges */}
-                    {badges.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }} transition={{ duration: 0.35 }}
-                        >
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-sm">
-                                        <Award className="w-4 h-4 text-yellow-500" /> Badges
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
-                                        {badges.map((badge, i) => (
-                                            <span key={i}
-                                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary">
-                                                {badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    )}
-
-                    {/* Skill radar */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }} transition={{ duration: 0.35 }}
-                        className="max-w-2xl mx-auto w-full"
-                    >
+                    {isRecruiterProfile ? (
                         <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-sm">
-                                    <Activity className="w-4 h-4 text-primary" /> Skill Profile
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-60">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart data={radarData}>
-                                        <PolarGrid stroke="hsl(var(--border))" />
-                                        <PolarAngleAxis dataKey="metric"
-                                            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                                        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                                        <Tooltip contentStyle={{
-                                            backgroundColor: "hsl(var(--card))",
-                                            border: "1px solid hsl(var(--border))",
-                                            borderRadius: "8px", fontSize: "12px"
-                                        }} />
-                                        <Radar name="Score" dataKey="value"
-                                            stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
-                                    </RadarChart>
-                                </ResponsiveContainer>
+                            <CardContent className="space-y-4">
+                                <h2 className="text-lg font-semibold">Recruiter profile</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    This profile belongs to a recruiter account. Analysis, score, and technical breakdowns are hidden.
+                                </p>
+                                {profile?.company && (
+                                    <p className="text-sm"><span className="font-medium">Company:</span> {profile.company}</p>
+                                )}
+                                {profile?.designation && (
+                                    <p className="text-sm"><span className="font-medium">Designation:</span> {profile.designation}</p>
+                                )}
+                                {profile?.openToReferral && (
+                                    <p className="text-sm">
+                                        <span className="font-medium">Open to referrals:</span> Yes
+                                        {profile?.referralCompany && <span className="text-muted-foreground"> · {profile.referralCompany}</span>}
+                                    </p>
+                                )}
+                                {isAuthenticated && currentUser?.username !== username && (
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Button
+                                            size="sm"
+                                            onClick={handleConnect}
+                                            disabled={connecting || connectionState === "pending" || connectionState === "accepted"}
+                                        >
+                                            {connectionState === "accepted"
+                                                ? "Connected"
+                                                : connectionState === "pending"
+                                                    ? "Request Sent"
+                                                    : connecting
+                                                        ? "Sending..."
+                                                        : "Connect"}
+                                        </Button>
+                                        {connectionState === "accepted" && (
+                                            <Link to={`/messages/${username}`} className="text-sm text-primary hover:underline">
+                                                Message
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                                {connectError && <p className="text-xs text-destructive">{connectError}</p>}
                             </CardContent>
                         </Card>
-                    </motion.div>
+                    ) : (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35 }}
+                                className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3"
+                            >
+                                <StatItem icon={<Code2 className="w-4 h-4" />} label="Repos" value={metrics?.repoCount} />
+                                <StatItem icon={<Star className="w-4 h-4" />} label="Stars" value={metrics?.totalStars} color="text-yellow-500" />
+                                <StatItem icon={<GitFork className="w-4 h-4" />} label="Forks" value={metrics?.totalForks} />
+                                <StatItem icon={<Activity className="w-4 h-4" />} label="Commits 6M" value={metrics?.commitCount6Months} color="text-green-500" />
+                                <StatItem icon={<GitPullRequest className="w-4 h-4" />} label="PRs" value={metrics?.prCount} />
+                                <StatItem icon={<Flame className="w-4 h-4" />} label="Streak" value={`${metrics?.longestStreak ?? 0}d`} color="text-orange-500" />
+                            </motion.div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                >
+                                    <Card className="h-full">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2 text-sm">
+                                                <Code2 className="w-4 h-4 text-primary" /> Top Languages
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {topLanguages.map(lang => (
+                                                    <div key={lang.name}>
+                                                        <div className="flex justify-between text-sm mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1" }} />
+                                                                <span className="font-medium">{lang.name}</span>
+                                                            </div>
+                                                            <span className="text-muted-foreground font-mono">{lang.percent}%</span>
+                                                        </div>
+                                                        <ProgressBar value={lang.percent} color={LANGUAGE_COLORS[lang.name.toLowerCase()] || "#6366f1"} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+
+                                <div className="space-y-6">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2 text-sm">
+                                                    <Zap className="w-4 h-4 text-primary" /> Skills
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(() => {
+                                                        const seen = new Set();
+                                                        return (metrics?.skills || []).filter(skill => {
+                                                            const k = SKILL_ICON_KEY(skill);
+                                                            if (seen.has(k)) return false;
+                                                            seen.add(k);
+                                                            return true;
+                                                        });
+                                                    })().map(skill => {
+                                                        const key = SKILL_ICON_KEY(skill);
+                                                        return (
+                                                            <div key={key} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
+                                                                {TECH_ICONS[key] && <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={skill} />}
+                                                                <span>{skill}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {(() => {
+                                                        const ghKeys = new Set((metrics?.skills || []).map(s => SKILL_ICON_KEY(s)));
+                                                        return (lc?.languages || [])
+                                                            .filter(l => l.problemsSolved > 0 && !ghKeys.has(SKILL_ICON_KEY(l.languageName)))
+                                                            .sort((a, b) => b.problemsSolved - a.problemsSolved);
+                                                    })().map(l => {
+                                                        const key = SKILL_ICON_KEY(l.languageName);
+                                                        return (
+                                                            <div key={`lc-${l.languageName}`} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs">
+                                                                {TECH_ICONS[key] && <img src={TECH_ICONS[key]} className="w-3.5 h-3.5" alt={l.languageName} />}
+                                                                <span>{l.languageName}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2 text-sm">
+                                                    <Shield className="w-4 h-4 text-primary" /> Project Quality
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {qualityItems.map(item => (
+                                                        <div key={item.label} className="flex items-center gap-2 text-sm">
+                                                            {item.count > 0
+                                                                ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                                                : <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                                                            <span className={item.count > 0 ? "" : "text-muted-foreground"}>{item.label}</span>
+                                                            {item.count > 0 && <span className="text-xs text-muted-foreground font-mono ml-auto">{item.count}</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                </div>
+                            </div>
+
+                            {lc && lc.solved?.total > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center justify-between text-sm">
+                                                <span className="flex items-center gap-2">
+                                                    <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                                </span>
+                                                <span className="font-normal text-muted-foreground">
+                                                    Score <span className="font-bold font-mono text-foreground">{lcScore}</span>/100
+                                                </span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {[
+                                                    { label: "Total", value: lc.solved.total, cls: "bg-secondary text-foreground" },
+                                                    { label: "Easy", value: lc.solved.easy, cls: "bg-green-500/10 border border-green-500/20 text-green-500" },
+                                                    { label: "Medium", value: lc.solved.medium, cls: "bg-yellow-500/10 border border-yellow-500/20 text-yellow-500" },
+                                                    { label: "Hard", value: lc.solved.hard, cls: "bg-red-500/10 border border-red-500/20 text-red-500" },
+                                                ].map(d => (
+                                                    <div key={d.label} className={`text-center py-2.5 rounded-lg ${d.cls}`}>
+                                                        <div className="text-lg font-bold font-mono">{d.value}</div>
+                                                        <div className="text-xs text-muted-foreground">{d.label}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {lc.contest?.rating > 0 && (
+                                                <div className="flex rounded-lg bg-secondary overflow-hidden divide-x divide-border">
+                                                    <div className="flex-1 text-center py-2.5">
+                                                        <div className="text-xs text-muted-foreground">Rating</div>
+                                                        <div className="text-base font-bold font-mono">{Math.round(lc.contest.rating)}</div>
+                                                    </div>
+                                                    {lc.contest.globalRank && (
+                                                        <div className="flex-1 text-center py-2.5">
+                                                            <div className="text-xs text-muted-foreground">Global Rank</div>
+                                                            <div className="text-base font-bold font-mono">#{lc.contest.globalRank.toLocaleString()}</div>
+                                                        </div>
+                                                    )}
+                                                    {lc.contest.contestsAttended > 0 && (
+                                                        <div className="flex-1 text-center py-2.5">
+                                                            <div className="text-xs text-muted-foreground">Contests</div>
+                                                            <div className="text-base font-bold font-mono">{lc.contest.contestsAttended}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {topAlgoTags.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {topAlgoTags.map(tag => (
+                                                        <span key={tag.tagName} className="px-2 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
+                                                            {tag.tagName} · {tag.problemsSolved}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )}
+
+                            {(metrics?.reviewsGiven > 0 || metrics?.approvals > 0) && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2 text-sm">
+                                                <Eye className="w-4 h-4 text-primary" /> Code Review Activity
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                {[
+                                                    { label: "Reviews Given", value: metrics.reviewsGiven ?? 0, cls: "bg-blue-500/10 border-blue-500/20 text-blue-500" },
+                                                    { label: "Approvals", value: metrics.approvals ?? 0, cls: "bg-green-500/10 border-green-500/20 text-green-500" },
+                                                    { label: "Changes Requested", value: metrics.changesRequested ?? 0, cls: "bg-orange-500/10 border-orange-500/20 text-orange-500" },
+                                                    { label: "Review Comments", value: metrics.reviewComments ?? 0, cls: "bg-primary/10 border-primary/20 text-primary" },
+                                                ].map(d => (
+                                                    <div key={d.label} className={`text-center p-3 rounded-xl border ${d.cls}`}>
+                                                        <div className="text-xl font-bold font-mono">{d.value}</div>
+                                                        <div className="text-xs text-muted-foreground mt-0.5">{d.label}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )}
+
+                            {badges.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2 text-sm">
+                                                <Award className="w-4 h-4 text-yellow-500" /> Badges
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="flex flex-wrap gap-2">
+                                                {badges.map((badge, i) => (
+                                                    <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary">
+                                                        {badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
+                            )}
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                className="max-w-2xl mx-auto w-full"
+                            >
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2 text-sm">
+                                            <Activity className="w-4 h-4 text-primary" /> Skill Profile
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="h-60">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <RadarChart data={radarData}>
+                                                <PolarGrid stroke="hsl(var(--border))" />
+                                                <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                                                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                                                <Tooltip contentStyle={{
+                                                    backgroundColor: "hsl(var(--card))",
+                                                    border: "1px solid hsl(var(--border))",
+                                                    borderRadius: "8px", fontSize: "12px"
+                                                }} />
+                                                <Radar name="Score" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.25} strokeWidth={2} />
+                                            </RadarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </>
+                    )}
 
                     {/* Footer link */}
                     <div className="text-center pt-4">

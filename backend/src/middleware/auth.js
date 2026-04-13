@@ -15,8 +15,12 @@ export const requireAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     // decoded = { githubId, username, role, iat, exp }
 
-    // 3. Fetch the actual Profile document from MongoDB
-    const profile = await Profile.findOne({ githubId: decoded.githubId });
+    // 3. Fetch the actual Profile document from MongoDB for both account types
+    const profile = decoded.githubId
+      ? await Profile.findOne({ githubId: decoded.githubId })
+      : decoded.profileId
+        ? await Profile.findById(decoded.profileId)
+        : null;
 
     if (!profile) {
       return res.status(401).json({ error: "User not found." });

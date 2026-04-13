@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Github, ArrowLeft, Code2, Star, GitFork } from 'lucide-react';
@@ -7,7 +7,13 @@ import { useAuth } from '../context/AuthContext';
 
 export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
-  const { loginWithGitHub } = useAuth();
+  const navigate = useNavigate();
+  const { loginWithGitHub, isAuthenticated, role, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    navigate(role === 'recruiter' ? '/recruiter/dashboard' : '/dashboard', { replace: true });
+  }, [authLoading, isAuthenticated, role, navigate]);
 
   const handleGitHubLogin = () => {
     setLoading(true);
