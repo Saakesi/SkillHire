@@ -18,6 +18,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { AuthCallback } from "./pages/AuthCallback";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
+import axios from "axios";
+
+axios.defaults.withCredentials = true;
 
 function HomeRoute() {
   const { loading, isAuthenticated, role } = useAuth();
