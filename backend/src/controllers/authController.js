@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { addFetchReposJob } from "../jobs/fetchReposJob.js";
 import Profile from "../models/Profile.js"; // your Mongoose model
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 export const githubLogin = (req, res) => {
   // Added 'read:repo' to scope to access private repos (read-only)
   const url = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=repo read:user`;
@@ -100,7 +102,7 @@ export const githubCallback = async (req, res) => {
     });
 
     // Redirect to frontend dashboard
-    res.redirect("http://localhost:5173/dashboard");
+    res.redirect(`${FRONTEND_URL}/dashboard`);
   } catch (err) {
     console.error("Error in GitHub OAuth callback:", err);
     res.status(500).json({ error: "OAuth failed" });

@@ -16,7 +16,7 @@ import recruiterRoutes from "./src/routes/recruiterRoutes.js";
 import studentCollegeVerifyRouter from "./src/routes/studentCollegeVerify.js";
 import connectionRouter from "./src/routes/connectionRoutes.js";
 import referralRoutes from "./src/routes/referralRoutes.js";
-import messageRoutes  from "./src/routes/messageRoutes.js";
+import messageRoutes from "./src/routes/messageRoutes.js";
 
 
 console.log("BACKEND STARTED FROM:", process.cwd());
@@ -24,13 +24,16 @@ console.log("BACKEND STARTED FROM:", process.cwd());
 dotenv.config();
 console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const PORT = Number(process.env.PORT || 5000);
+
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: FRONTEND_URL,
     credentials: true,
   },
 });
@@ -82,7 +85,7 @@ io.on("connection", (socket) => {
 });
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: FRONTEND_URL,
   credentials: true
 }));
 
@@ -98,7 +101,7 @@ app.use("/api/recruiter", recruiterRoutes);
 app.use("/api/student/college-verify", studentCollegeVerifyRouter);
 app.use("/api/connections", connectionRouter);
 app.use("/api/referrals", referralRoutes);
-app.use("/api/messages",  messageRoutes);
+app.use("/api/messages", messageRoutes);
 console.log("Router imported");
 
 app.get('/', (req, res) => {
@@ -112,8 +115,18 @@ app.get("/api/me", (req, res) => {
   res.json({ authenticated: true });
 });
 
-server.listen(5000, () => {
-  console.log("Server running on port 5000");
+app.get("/ping", (req, res) => {
+  res.setTimeout(2000, () => {
+    console.log("Ping timeout");
+  });
+
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+  });
+});
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 mongoose.connect(process.env.MONGO_URI)
