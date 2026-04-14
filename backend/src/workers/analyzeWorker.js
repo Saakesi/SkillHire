@@ -1,5 +1,6 @@
 // workers/analyzeWorker.js  (or wherever your worker lives)
 import { Worker } from "bullmq";
+import http from "http";
 import IORedis from "ioredis";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -186,3 +187,12 @@ const worker = new Worker(
 
 worker.on("completed", job => console.log(`✅ Job ${job.id} completed`));
 worker.on("failed", (job, err) => console.error(`❌ Job ${job?.id} failed`, err));
+
+const PORT = process.env.PORT || 10000;
+
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Worker is alive");
+}).listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Worker dummy server running on port ${PORT}`);
+});
