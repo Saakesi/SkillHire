@@ -9,6 +9,7 @@ export const Footer = () => {
     Platform: [
       { label: 'Features', href: '/#features' },
       { label: 'Leaderboard', href: '/leaderboard' },
+      { label: 'Engineering', href: '/engineering' },
       { label: 'Developer Login', href: '/login' },
       { label: 'Recruiter Login', href: '/recruiter' },
     ],

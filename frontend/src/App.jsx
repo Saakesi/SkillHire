@@ -9,6 +9,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Engineering from "./pages/Engineering";
 import LandingPage from "./components/landing/LandingPage";
 import Referrals from "./pages/Referrals";
 import Messages from "./pages/Messages";
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile/:username" element={<PublicProfile />} />
             <Route path="/about" element={<About />} />
+            <Route path="/engineering" element={<Engineering />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
