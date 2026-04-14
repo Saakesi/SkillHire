@@ -95,8 +95,8 @@ export const githubCallback = async (req, res) => {
 
     res.cookie("auth", jwtToken, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: false,
+      sameSite: "none",
+      secure: true,
       path: "/",   // set true in production with HTTPS
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
@@ -104,9 +104,12 @@ export const githubCallback = async (req, res) => {
     // Redirect to frontend dashboard
     res.redirect(`${FRONTEND_URL}/dashboard`);
   } catch (err) {
-    console.error("Error in GitHub OAuth callback:", err);
-    res.status(500).json({ error: "OAuth failed" });
-  }
+      console.error("ERROR:", err.response?.data || err.message);
+      res.status(500).json({
+      error: "OAuth failed",
+      details: err.response?.data || err.message
+  });
+}
 };
 
 
