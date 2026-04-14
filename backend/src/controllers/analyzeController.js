@@ -1,9 +1,9 @@
-import { analyzeProfileQueue } from "../jobs/analyzeProfileJob.js";
+// src/controllers/analyzeController.js
+import { enqueueAnalysis } from "../jobs/analyzeProfileJob.js";  // ← changed
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
-
 import Analysis from "../models/Analysis.js";
-import { computeGitHireScore } from "../services/scoring/scoreEngine.js";
+import { getCollegeName } from "../seed/collegeNameMap.js";  // ← added (was missing)
 
 export const analyzeProfile = async (req, res) => {
   const token = req.cookies.auth;
@@ -16,7 +16,6 @@ export const analyzeProfile = async (req, res) => {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // get profile from github token
   const profile = await Profile.findOne(
     { githubId: user.githubId }
   ).select("+githubAccessToken");
@@ -29,37 +28,37 @@ export const analyzeProfile = async (req, res) => {
     return res.status(400).json({ error: "GitHub token missing" });
   }
 
-  // create or reset analysis state
+  // Create or reset analysis state
   await Analysis.findOneAndUpdate(
     { githubId: user.githubId },
     {
-      githubId: user.githubId,
-      status: "queued",
-      result: null,
+      githubId:  user.githubId,
+      status:    "queued",
+      result:    null,
       updatedAt: new Date()
     },
     { upsert: true, new: true }
   );
 
+  const jobData = {
+    githubId:         user.githubId,
+    githubUsername:   profile.username,
+    githubToken:      profile.githubAccessToken,
+    leetcodeUsername: profile.leetcodeUsername ?? null,
+  };
 
+  // ← enqueueAnalysis handles priority + duplicate detection
+  const result = await enqueueAnalysis(profile, jobData);
 
-  const job = await analyzeProfileQueue.add(
-    "analyze",
-    {
-      githubId: user.githubId,
-      githubUsername: profile.username,
-      githubToken: profile.githubAccessToken,
-      leetcodeUsername: profile.leetcodeUsername
-    },
-    {
-      attempts: 3,
-      backoff: { type: "exponential", delay: 5000 }
-    }
-  );
+  if (!result.queued) {
+    return res.status(409).json(result);  // already queued
+  }
 
   res.json({
-    message: "Analysis queued",
-    jobId: job.id
+    message:  "Analysis queued",
+    jobId:    result.jobId,
+    priority: result.priority,
+    label:    result.label,
   });
 };
 
@@ -75,47 +74,43 @@ export const getAnalyzeStatus = async (req, res) => {
 
     if (!analysis.rawMetrics || Object.keys(analysis.rawMetrics).length === 0) {
       return res.json({
-        status: analysis.status,
-        overallScore: 0,
+        status:        analysis.status,
+        overallScore:  0,
         scoreBreakdown: {},
-        rawMetrics: {},
-        updatedAt: analysis.updatedAt
+        rawMetrics:    {},
+        updatedAt:     analysis.updatedAt
       });
     }
 
     const scoreBreakdown = analysis.scoreBreakdown;
-    const overallScore = analysis.overallScore;
+    const overallScore   = analysis.overallScore;
 
-    // Optional: save computed breakdown back to DB
     if (!analysis.scoreBreakdown || Object.keys(analysis.scoreBreakdown).length === 0) {
       analysis.scoreBreakdown = scoreBreakdown;
-      analysis.overallScore = overallScore;
+      analysis.overallScore   = overallScore;
       await analysis.save();
     }
 
-     const eduBadge =
+    const eduBadge =
       analysis.eduBadge
       ?? (profile.edu_verified && profile.collegeDomain
-          ? `${getCollegeName(profile.collegeDomain)} verified`
+          ? `${getCollegeName(profile.collegeDomain)} verified`  // ← now works
           : null);
 
-    // Replace raw "edu_verified" string with human-readable college name
     const resolvedBadges = (analysis.badges || []).map(badge =>
-      badge === "edu_verified" && eduBadge
-        ? eduBadge                       // "IIT Bombay verified"
-        : badge                          // "polyglot" etc unchanged
+      badge === "edu_verified" && eduBadge ? eduBadge : badge
     );
 
     return res.json({
-      status: analysis.status,
+      status:          analysis.status,
       overallScore,
       scoreBreakdown,
-      rawMetrics: analysis.rawMetrics,
-      badges:resolvedBadges,   
+      rawMetrics:      analysis.rawMetrics,
+      badges:          resolvedBadges,
       eduBadge,
-      leetcodeScore: analysis.leetcodeScore,
+      leetcodeScore:   analysis.leetcodeScore,
       leetcodeMetrics: analysis.leetcodeMetrics,
-      updatedAt: analysis.updatedAt
+      updatedAt:       analysis.updatedAt
     });
   } catch (err) {
     console.error(err);

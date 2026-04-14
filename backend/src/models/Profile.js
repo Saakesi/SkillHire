@@ -51,7 +51,7 @@ const ProfileSchema = new mongoose.Schema({
   role: { type: String },
   openToReferral: { type: Boolean, default: false },
   referralCompany: { type: String },
-referralNote:    { type: String },
+  referralNote:    { type: String },
   score: { type: Number, default: 0 },
 
 
@@ -71,6 +71,7 @@ referralNote:    { type: String },
 collegeDomain:   { type: String,  default: null },
 edu_verified:    { type: Boolean, default: false },
 edu_verified_at: { type: Date,    default: null },
+isPro:          { type: Boolean, default: false },
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

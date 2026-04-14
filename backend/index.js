@@ -13,6 +13,13 @@ import studentCollegeVerifyRouter from "./src/routes/studentCollegeVerify.js";
 import connectionRouter from "./src/routes/connectionRoutes.js";
 import referralRoutes from "./src/routes/referralRoutes.js";
 import messageRoutes  from "./src/routes/messageRoutes.js";
+import {
+  generalLimiter,
+  authLimiter,
+  analyzeLimiter,
+  otpLimiter,
+  recruiterLimiter,
+} from "./src/middleware/apiGateway.js";
 
 
 console.log("BACKEND STARTED FROM:", process.cwd());
@@ -31,17 +38,24 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
+app.use(generalLimiter);
+app.use("/api/auth",authLimiter, authRoutes);
 app.use("/api/profile", profileRoutes);
-app.use("/api/analyze", analyzeRoutes);
+app.use("/api/analyze",analyzeLimiter, analyzeRoutes);
 app.use("/api/ranking", rankingroutes);
 app.use("/api/colleges", collegeRoutes);
-app.use("/api/recruiter", recruiterRoutes);
-app.use("/api/student/college-verify", studentCollegeVerifyRouter);
+app.use("/api/recruiter",recruiterLimiter, recruiterRoutes);
+app.use("/api/student/college-verify",otpLimiter, studentCollegeVerifyRouter);
 app.use("/api/connections", connectionRouter);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/messages",  messageRoutes);
 console.log("Router imported");
+import { createServer } from "http";
+import { initSocket }   from "./src/socket/socketServer.js";
+
+
+const httpServer = createServer(app);
+initSocket(httpServer);
 
 app.get('/', (req, res) => {
   res.send("Backend is Working!");
@@ -54,9 +68,13 @@ app.get("/api/me", (req, res) => {
   res.json({ authenticated: true });
 });
 
+httpServer.listen(5000, () => {
+  console.log("Server + WebSocket running on port 5000");
+});
+/*
 app.listen(5000, () => {
   console.log("Server running on port 5000");
-});
+});*/
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))

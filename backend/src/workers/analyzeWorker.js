@@ -153,6 +153,11 @@ const worker = new Worker(
         }
       );
 
+      await Profile.findOneAndUpdate(
+      { githubId },
+      { updatedAt: new Date() }
+      );
+
       await cacheDelPattern("leaderboard:*");
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -169,7 +174,13 @@ const worker = new Worker(
       throw error;
     }
   },
-  { connection }
+  { connection , 
+    concurrency: 3,
+    limiter: {
+      max:      5,    // max 5 jobs processed per duration
+      duration: 1000  // per 1 second — respects GitHub API limits
+    }
+  }
 );
 
 worker.on("completed", job => console.log(`✅ Job ${job.id} completed`));
