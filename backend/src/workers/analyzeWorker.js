@@ -191,8 +191,18 @@ worker.on("failed", (job, err) => console.error(`❌ Job ${job?.id} failed`, err
 const PORT = process.env.PORT || 10000;
 
 http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("Worker is alive");
+  res.writeHead(200, { "Content-Type": "application/json" });
+
+  if (req.url === "/ping") {
+    res.end(JSON.stringify({
+      status: "worker-ok",
+      uptime: process.uptime()
+    }));
+  } else {
+    res.end(JSON.stringify({
+      message: "Worker is alive"
+    }));
+  }
 }).listen(PORT, "0.0.0.0", () => {
   console.log(`🌐 Worker dummy server running on port ${PORT}`);
 });
