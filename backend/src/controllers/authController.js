@@ -158,8 +158,8 @@ export const logout = (req, res) => {
   console.log("Clearing auth cookie");
   res.clearCookie("auth", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: "none",
+    secure: true,
     path: "/"
   });
 
