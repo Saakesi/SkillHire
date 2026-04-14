@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Activity,
   Bot,
   Boxes,
+  ChevronRight,
   Database,
   GitBranch,
   Layers3,
@@ -12,6 +13,7 @@ import {
   Radar,
   Search,
   ShieldCheck,
+  Sparkles,
   Users,
   Workflow,
   Zap,
@@ -330,9 +332,20 @@ const engineeringRisks = [
   "Some profile-derived suggestion logic references fields that are not strongly represented in the main schema, so recommendation quality depends on data hygiene.",
 ];
 
+const navSections = [
+  { id: "topology", label: "Topology", icon: Network },
+  { id: "layers", label: "Layers", icon: Layers3 },
+  { id: "domain-model", label: "Models", icon: Database },
+  { id: "flows", label: "Flows", icon: Workflow },
+  { id: "scoring", label: "Scoring", icon: Activity },
+  { id: "apis", label: "APIs", icon: Boxes },
+  { id: "security", label: "Security", icon: ShieldCheck },
+  { id: "ops", label: "Ops", icon: Bot },
+];
+
 function Section({ id, eyebrow, title, description, children }) {
   return (
-    <section id={id} className="space-y-6">
+    <section id={id} data-engineering-section className="scroll-mt-28 space-y-6">
       <div className="space-y-3">
         <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
           {eyebrow}
@@ -342,6 +355,86 @@ function Section({ id, eyebrow, title, description, children }) {
       </div>
       {children}
     </section>
+  );
+}
+
+function SectionSidebar({ activeSection }) {
+  const current = navSections.find((section) => section.id === activeSection);
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-primary/15 bg-primary/5">
+        <CardHeader className="flex-col items-start gap-2">
+          <CardTitle className="text-lg">Currently Reading</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-3">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-primary/80">Active Section</div>
+            <div className="mt-1 text-base font-semibold text-foreground">{current?.label}</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card variant="glass" className="overflow-hidden border-primary/15">
+        <CardHeader className="flex-col items-start gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Sparkles className="w-5 h-5 text-primary" />
+            Engineering Guide
+          </CardTitle>
+          <CardDescription>Jump between sections and keep your place while reading.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {navSections.map((section, index) => {
+            const Icon = section.icon;
+            const active = activeSection === section.id;
+
+            return (
+              <button
+                key={section.id}
+                onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${
+                  active
+                    ? "border-primary/30 bg-primary/10 text-foreground shadow-sm"
+                    : "border-transparent bg-background/60 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground"
+                }`}
+              >
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground group-hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] uppercase tracking-[0.22em] opacity-60">0{index + 1}</div>
+                  <div className="text-sm font-medium">{section.label}</div>
+                </div>
+                <ChevronRight className={`w-4 h-4 transition-transform ${active ? "translate-x-1 text-primary" : ""}`} />
+              </button>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary/15 bg-primary/5">
+        <CardHeader className="flex-col items-start gap-2">
+          <CardTitle className="text-lg">Reading Path</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border bg-card px-3 py-2">
+            Start with <span className="font-medium text-foreground">Topology</span> for system shape.
+          </div>
+          <div className="rounded-xl border border-border bg-card px-3 py-2">
+            Use <span className="font-medium text-foreground">Models</span> for persistence and relationships.
+          </div>
+          <div className="rounded-xl border border-border bg-card px-3 py-2">
+            Jump to <span className="font-medium text-foreground">Flows</span> for real product behavior.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -743,20 +836,46 @@ function DatabaseSchemaSection() {
 }
 
 export default function Engineering() {
+  const [activeSection, setActiveSection] = useState(navSections[0].id);
+
+  useEffect(() => {
+    const nodes = Array.from(document.querySelectorAll("[data-engineering-section]"));
+    if (!nodes.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible[0]?.target?.id) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      {
+        rootMargin: "-18% 0px -55% 0px",
+        threshold: [0.2, 0.35, 0.5, 0.7],
+      }
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Layout>
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_28%),linear-gradient(180deg,rgba(99,102,241,0.06),transparent_26%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 space-y-14">
-          {/* Hero */}
-          <section className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr] items-start">
+        <div className="absolute inset-x-0 top-0 h-[560px] bg-[linear-gradient(135deg,rgba(99,102,241,0.07),transparent_45%,rgba(168,85,247,0.05))]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10">
+          <section className="grid gap-8 xl:grid-cols-[1.25fr_0.75fr] items-start">
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-xs text-muted-foreground">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-xs text-muted-foreground backdrop-blur">
                 <Network className="w-4 h-4 text-primary" />
-                Single-page engineering reference for the entire SkillHire app
+                Interactive engineering reference for the entire SkillHire app
               </div>
               <div className="space-y-4">
-                <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-balance">
+                <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight text-balance">
                   SkillHire system design, data model, request flows, and runtime architecture
                 </h1>
                 <p className="max-w-4xl text-base sm:text-lg text-muted-foreground">
@@ -767,14 +886,17 @@ export default function Engineering() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {stack.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-border bg-card/80 p-4 backdrop-blur">
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-border bg-card/80 p-4 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary/30"
+                  >
                     <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{item.label}</div>
                     <div className="mt-2 text-sm font-medium leading-6">{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
-            <Card variant="glass" className="sticky top-24">
+            <Card variant="glass" className="border-primary/15">
               <CardHeader className="flex-col items-start gap-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Boxes className="w-5 h-5 text-primary" />
@@ -803,10 +925,47 @@ export default function Engineering() {
                   The core architectural spine is: <strong>Profile</strong> + <strong>Analysis</strong> +{" "}
                   <strong>Redis/BullMQ worker</strong>.
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-primary/15 bg-primary/10 p-4 text-primary">
+                    <div className="text-2xl font-bold">{navSections.length}</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.18em]">Sections</div>
+                  </div>
+                  <div className="rounded-xl border border-primary/15 bg-primary/10 p-4 text-primary">
+                    <div className="text-2xl font-bold">6</div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.18em]">Core Models</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </section>
 
+          <div className="flex gap-2 overflow-x-auto pb-2 xl:hidden">
+            {navSections.map((section) => {
+              const active = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${
+                    active
+                      ? "border-primary/30 bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground"
+                  }`}
+                >
+                  {section.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-8 xl:grid-cols-[290px_minmax(0,1fr)]">
+            <aside className="hidden xl:block">
+              <div className="sticky top-24">
+                <SectionSidebar activeSection={activeSection} />
+              </div>
+            </aside>
+
+            <div className="space-y-14">
           <Section
             id="topology"
             eyebrow="Topology"
@@ -1032,6 +1191,8 @@ export default function Engineering() {
               </Card>
             </div>
           </Section>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>
