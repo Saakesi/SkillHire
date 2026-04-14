@@ -327,7 +327,7 @@ const operationalNotes = [
 
 const engineeringRisks = [
   "Recruiter data is modeled in both Profile and Recruiter schemas, but the active auth/search flow currently uses Profile documents. This is an architectural inconsistency worth consolidating.",
-  "The backend currently hardcodes localhost origins for CORS and redirects, so deployment will need environment-driven host configuration.",
+  "Deployment safety depends on correctly configured environment URLs for frontend origin, backend API host, and cookie/security settings.",
   "Redis is used by both cache and queue subsystems, but via separate client setup files. That works, but centralizing connection strategy would simplify operations.",
   "Some profile-derived suggestion logic references fields that are not strongly represented in the main schema, so recommendation quality depends on data hygiene.",
 ];

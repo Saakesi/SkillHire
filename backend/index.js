@@ -24,13 +24,15 @@ console.log("BACKEND STARTED FROM:", process.cwd());
 dotenv.config();
 console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: FRONTEND_URL,
     credentials: true,
   },
 });
@@ -82,7 +84,7 @@ io.on("connection", (socket) => {
 });
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: FRONTEND_URL,
   credentials: true
 }));
 
