@@ -11,8 +11,8 @@ const generateOTP = () => String(crypto.randomInt(100000, 999999));
 
 const COOKIE_OPTS = {
   httpOnly: true,
-  sameSite: "lax",
-  secure: false,
+  sameSite: "none",
+  secure: true,
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
