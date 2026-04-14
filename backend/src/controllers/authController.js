@@ -95,7 +95,7 @@ export const githubCallback = async (req, res) => {
 
     res.cookie("auth", jwtToken, {
       httpOnly: true,
-      sameSite: none,
+      sameSite: "none",
       secure: true,
       path: "/",   // set true in production with HTTPS
       maxAge: 7 * 24 * 60 * 60 * 1000
