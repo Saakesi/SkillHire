@@ -1,8 +1,12 @@
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
+const REDIS_URL = process.env.REDIS_URL;
 
-const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+if (!REDIS_URL) {
+  throw new Error("❌ REDIS_URL missing");
+}
 
+console.log("redis url: ", REDIS_URL);
 // Redis connection
 export const connection = new IORedis(REDIS_URL);
 

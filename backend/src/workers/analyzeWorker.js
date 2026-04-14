@@ -26,8 +26,18 @@ await mongoose.connect(process.env.MONGO_URI);
 
 console.log("🟢 Worker MongoDB connected");
 
-const connection = new IORedis(process.env.REDIS_URL, {
+const REDIS_URL = process.env.REDIS_URL;
+
+
+if (!REDIS_URL) {
+  throw new Error("❌ REDIS_URL missing");
+}
+
+console.log("redis url: ", REDIS_URL);
+
+const connection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
+  db: 0, 
 });
 
 const worker = new Worker(
