@@ -11,8 +11,8 @@ export default function Contact() {
         </p>
 
         <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-          <p className="text-sm"><span className="font-medium">Email:</span> support@skillhire.app</p>
-          <p className="text-sm"><span className="font-medium">For recruiters:</span> recruiter@skillhire.app</p>
+          <p className="text-sm"><span className="font-medium">Email:</span> support@skillhire.tech</p>
+          <p className="text-sm"><span className="font-medium">For recruiters:</span> recruiter@skillhire.tech</p>
           <p className="text-sm text-muted-foreground">Mon-Fri, 9 AM to 6 PM IST</p>
         </div>
       </section>
