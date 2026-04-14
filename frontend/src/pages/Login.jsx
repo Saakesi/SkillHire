@@ -106,7 +106,7 @@ export const LoginPage = () => {
 
       {/* Right Side - Visual */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+        <div className="absolute inset-0 opacity-10" />
 
         <div className="absolute inset-0 flex items-center justify-center p-16">
           <motion.div
