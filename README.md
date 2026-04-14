@@ -1,7 +1,8 @@
 # SkillHire
 
 <p align="center">
-  <h3 align="center">Hire by proof, not guesswork</h3>
+  <h3 align="center">Hire Developers Based on Real Code, 
+  Not Just Resumes</h3>
   <p align="center">
     Transforming real GitHub activity into powerful hiring signals
   </p>
@@ -17,26 +18,34 @@
 ---
 
 ## 🌐 Live Demo
+https://skillhire.tech
 
-| Platform | Link |
-|--------|------|
-| 🚀 Frontend | https://your-frontend.vercel.app |
-| ⚙️ Backend API | https://your-backend.vercel.app |
+---
+
+## 🚀 Deployment
+
+- Frontend deployed on Vercel  
+- Backend deployed on Render  
+- Redis managed on Upstash  
+- Custom domain configured through Cloudflare DNS  
 
 ---
 
 ## 📸 Preview
 
-> *(Add screenshots here — extremely important for recruiters)*
 
 ### 🏠 Homepage
-![Homepage](https://via.placeholder.com/1200x600?text=Homepage+Preview)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/a4635b5b-fd4a-44a1-af1d-b8c5dbf697f3" />
+
+
 
 ### 📊 Dashboard
-![Dashboard](https://via.placeholder.com/1200x600?text=Dashboard+Preview)
+<img width="1920" height="1080" alt="Screenshot 2026-04-15 011813" src="https://github.com/user-attachments/assets/54b007e4-b479-4aaf-84a8-00c2d4beed14" />
+
 
 ### 🔍 Recruiter Search
-![Search](https://via.placeholder.com/1200x600?text=Search+Preview)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/948d8207-8b0c-4721-b66c-d59b8701876e" />
+
 
 ---
 
@@ -45,6 +54,12 @@
 SkillHire is a **full-stack developer discovery and evaluation platform** that converts real-world coding activity into structured hiring insights.
 
 💡 Built to eliminate resume bias and highlight **actual engineering ability**.
+
+Recruiters can filter developers by skills, activity, and performance signals—making hiring faster and more data-driven.
+
+Curious how these insights are generated?  
+Take a look under the hood and explore the engineering behind SkillHire:  
+👉 https://www.skillhire.tech/engineering
 
 ---
 
@@ -78,6 +93,7 @@ SkillHire:
 
 ### 🧑‍💼 Recruiter Experience
 - OTP-based secure authentication  
+- OTP emails sent using Gmail API (OAuth2)  
 - Advanced filtering system:
   - Skills, score range  
   - College, branch, batch  
@@ -88,11 +104,21 @@ SkillHire:
 
 ---
 
+### 🤝 Networking Experience
+- Referral workflows for users open to referrals  
+- Connection requests with accept/decline flows  
+- Realtime messaging for accepted connections and accepted referrals  
+
+---
+
 ### ⚙️ Platform Capabilities
 - JWT auth with HttpOnly cookies  
 - Redis caching layer  
 - BullMQ async job processing  
 - Scalable worker architecture  
+- Gmail API email delivery for OTPs  
+- College verification workflow for students  
+- Socket.IO rooms for realtime messages  
 - Category-based ranking system  
 
 ---
@@ -146,7 +172,8 @@ SkillHire:
 - BullMQ
 - JWT + cookie-parser
 - GitHub API
-- Nodemailer
+- Gmail API + Nodemailer (OAuth2)
+- Socket.IO
 ---
 ## 📂 Project Structure
 ```text
@@ -174,7 +201,7 @@ SkillHire/
 - MongoDB
 - Redis
 - GitHub OAuth credentials
-- SMTP credentials
+- Gmail OAuth credentials
 📦 Installation
 ### Backend
 ```text
@@ -214,14 +241,16 @@ JWT_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
+GMAIL_USER=
+GMAIL_CLIENT_ID=
+GMAIL_CLIENT_SECRET=
+GMAIL_REFRESH_TOKEN=
+GMAIL_REDIRECT_URI=
 ```
 ### Frontend
 ```text
 VITE_API_URL=http://localhost:5000
+VITE_FRONTEND_URL=http://localhost:5173
 ```
 ## 🔗 API Modules
 
@@ -232,6 +261,10 @@ VITE_API_URL=http://localhost:5000
 | Analyze   | GitHub scoring           |
 | Ranking   | Leaderboards             |
 | Recruiter | Search + shortlist       |
+| Connections | Request, accept, decline, and remove connections |
+| Referrals  | Referral requests and approvals |
+| Messages   | Realtime 1:1 messaging and inbox |
+| College Verification | Student college email verification |
 
 ---
 
@@ -239,7 +272,7 @@ VITE_API_URL=http://localhost:5000
 
 - ❌ Backend not starting → Check MongoDB & `.env`  
 - ❌ OAuth failing → Verify GitHub credentials  
-- ❌ Emails not sending → Check SMTP config  
+- ❌ Emails not sending → Check Gmail OAuth config  
 - ❌ Analysis stuck → Ensure worker + Redis running  
 
 ---
