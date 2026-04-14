@@ -26,7 +26,9 @@ await mongoose.connect(process.env.MONGO_URI);
 
 console.log("🟢 Worker MongoDB connected");
 
-const connection = new IORedis({ maxRetriesPerRequest: null });
+const connection = new IORedis(process.env.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
 
 const worker = new Worker(
   "analyzeProfile",
@@ -45,9 +47,9 @@ const worker = new Worker(
 
       const repos = await fetchUserRepos(githubToken);
 
-      const repoCount   = repos.length;
-      const totalStars  = repos.reduce((sum, r) => sum + r.stargazers_count, 0);
-      const totalForks  = repos.reduce((sum, r) => sum + r.forks_count, 0);
+      const repoCount = repos.length;
+      const totalStars = repos.reduce((sum, r) => sum + r.stargazers_count, 0);
+      const totalForks = repos.reduce((sum, r) => sum + r.forks_count, 0);
 
       const [
         languageData,
@@ -106,8 +108,8 @@ const worker = new Worker(
         qualityIndicators: filteredQualityMetrics,
 
         // ← ADD: inject edu fields so badgeRules can read them
-        edu_verified:   profile?.edu_verified  ?? false,
-        collegeDomain:  profile?.collegeDomain ?? null,
+        edu_verified: profile?.edu_verified ?? false,
+        collegeDomain: profile?.collegeDomain ?? null,
         edu_confidence: profile?.edu_confidence ?? null,
       };
 
@@ -139,17 +141,17 @@ const worker = new Worker(
         { githubId },
         {
           githubId,
-          username:       githubUsername,
-          status:         "completed",
+          username: githubUsername,
+          status: "completed",
           rawMetrics,
-          overallScore:   scoreData.finalScore,
-          finalScore:     scoreData.finalScore,
+          overallScore: scoreData.finalScore,
+          finalScore: scoreData.finalScore,
           scoreBreakdown: scoreData,
           leetcodeScore,
           badges,
-          eduBadge:       eduBadgeLabel,   // ← ADD: "IIT Bombay verified"
+          eduBadge: eduBadgeLabel,   // ← ADD: "IIT Bombay verified"
           leetcodeMetrics,
-          updatedAt:      new Date()
+          updatedAt: new Date()
         }
       );
 
@@ -173,4 +175,4 @@ const worker = new Worker(
 );
 
 worker.on("completed", job => console.log(`✅ Job ${job.id} completed`));
-worker.on("failed",    (job, err) => console.error(`❌ Job ${job?.id} failed`, err));
+worker.on("failed", (job, err) => console.error(`❌ Job ${job?.id} failed`, err));
