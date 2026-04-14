@@ -392,18 +392,16 @@ function SectionSidebar({ activeSection }) {
               <button
                 key={section.id}
                 onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${
-                  active
-                    ? "border-primary/30 bg-primary/10 text-foreground shadow-sm"
-                    : "border-transparent bg-background/60 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground"
-                }`}
+                className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${active
+                  ? "border-primary/30 bg-primary/10 text-foreground shadow-sm"
+                  : "border-transparent bg-background/60 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground"
+                  }`}
               >
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground group-hover:text-foreground"
-                  }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground group-hover:text-foreground"
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                 </div>
@@ -839,32 +837,31 @@ export default function Engineering() {
   const [activeSection, setActiveSection] = useState(navSections[0].id);
 
   useEffect(() => {
-    const nodes = Array.from(document.querySelectorAll("[data-engineering-section]"));
-    if (!nodes.length) return undefined;
+    const sections = document.querySelectorAll("[data-engineering-section]");
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+    const handleScroll = () => {
+      let current = navSections[0].id;
 
-        if (visible[0]?.target?.id) {
-          setActiveSection(visible[0].target.id);
+      sections.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+
+        if (rect.top <= 150 && rect.bottom >= 150) {
+          current = section.id;
         }
-      },
-      {
-        rootMargin: "-18% 0px -55% 0px",
-        threshold: [0.2, 0.35, 0.5, 0.7],
-      }
-    );
+      });
 
-    nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
+      setActiveSection(current);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <Layout>
-      <div className="relative overflow-hidden">
+      <div className="relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_28%),linear-gradient(180deg,rgba(99,102,241,0.06),transparent_26%)]" />
         <div className="absolute inset-x-0 top-0 h-[560px] bg-[linear-gradient(135deg,rgba(99,102,241,0.07),transparent_45%,rgba(168,85,247,0.05))]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10">
@@ -946,11 +943,10 @@ export default function Engineering() {
                 <button
                   key={section.id}
                   onClick={() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${
-                    active
-                      ? "border-primary/30 bg-primary text-primary-foreground"
-                      : "border-border bg-card text-muted-foreground"
-                  }`}
+                  className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm transition-colors ${active
+                    ? "border-primary/30 bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground"
+                    }`}
                 >
                   {section.label}
                 </button>
@@ -958,239 +954,237 @@ export default function Engineering() {
             })}
           </div>
 
-          <div className="grid gap-8 xl:grid-cols-[290px_minmax(0,1fr)]">
-            <aside className="hidden xl:block">
-              <div className="sticky top-24">
-                <SectionSidebar activeSection={activeSection} />
-              </div>
+          <div className="grid gap-8 xl:grid-cols-[290px_minmax(0,1fr)] items-start">
+            <aside className="hidden xl:block sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pr-2">
+              <SectionSidebar activeSection={activeSection} />
             </aside>
 
             <div className="space-y-14">
-          <Section
-            id="topology"
-            eyebrow="Topology"
-            title="Runtime topology"
-            description="SkillHire is a split frontend/backend system with a separate worker for heavy analysis and Redis for both queue transport and caching."
-          >
-            <RuntimeTopologyDiagram />
-          </Section>
+              <Section
+                id="topology"
+                eyebrow="Topology"
+                title="Runtime topology"
+                description="SkillHire is a split frontend/backend system with a separate worker for heavy analysis and Redis for both queue transport and caching."
+              >
+                <RuntimeTopologyDiagram />
+              </Section>
 
-          <Section
-            id="layers"
-            eyebrow="Architecture"
-            title="Application layers"
-            description="The codebase is organized around pages/components on the frontend and route/controller/service/model boundaries on the backend."
-          >
-            <div className="grid gap-5 lg:grid-cols-2">
-              {architectureLayers.map((layer) => (
-                <Card key={layer.title} hover className="h-full">
-                  <CardHeader className="flex-col items-start gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-primary/20 bg-primary/10 p-2">{layer.icon}</div>
-                      <CardTitle className="text-lg">{layer.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <BulletList items={layer.points} />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </Section>
+              <Section
+                id="layers"
+                eyebrow="Architecture"
+                title="Application layers"
+                description="The codebase is organized around pages/components on the frontend and route/controller/service/model boundaries on the backend."
+              >
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {architectureLayers.map((layer) => (
+                    <Card key={layer.title} hover className="h-full">
+                      <CardHeader className="flex-col items-start gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl border border-primary/20 bg-primary/10 p-2">{layer.icon}</div>
+                          <CardTitle className="text-lg">{layer.title}</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <BulletList items={layer.points} />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </Section>
 
-          {/* ── Merged Data Model + ER Diagram section ── */}
-          <Section
-            id="domain-model"
-            eyebrow="Models"
-            title="Core data model"
-            description="The database centers on Profile and Analysis, then layers social and messaging entities on top. Each card shows field names, types, and key constraints exactly as modeled in Mongoose."
-          >
-            <DatabaseSchemaSection />
-          </Section>
+              {/* ── Merged Data Model + ER Diagram section ── */}
+              <Section
+                id="domain-model"
+                eyebrow="Models"
+                title="Core data model"
+                description="The database centers on Profile and Analysis, then layers social and messaging entities on top. Each card shows field names, types, and key constraints exactly as modeled in Mongoose."
+              >
+                <DatabaseSchemaSection />
+              </Section>
 
-          <Section
-            id="flows"
-            eyebrow="Flows"
-            title="Primary user and system flows"
-            description="These are the highest-value end-to-end paths in the current application."
-          >
-            <div className="grid gap-5 xl:grid-cols-2">
-              {flows.map((flow) => (
-                <Card key={flow.title} hover className="h-full">
-                  <CardHeader className="flex-col items-start gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-primary/20 bg-primary/10 p-2">{flow.icon}</div>
-                      <CardTitle className="text-lg">{flow.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ol className="space-y-3 text-sm text-muted-foreground">
-                      {flow.steps.map((step, index) => (
-                        <li key={step} className="flex gap-3">
-                          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-                            {index + 1}
-                          </span>
-                          <span className="pt-0.5">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </Section>
+              <Section
+                id="flows"
+                eyebrow="Flows"
+                title="Primary user and system flows"
+                description="These are the highest-value end-to-end paths in the current application."
+              >
+                <div className="grid gap-5 xl:grid-cols-2">
+                  {flows.map((flow) => (
+                    <Card key={flow.title} hover className="h-full">
+                      <CardHeader className="flex-col items-start gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl border border-primary/20 bg-primary/10 p-2">{flow.icon}</div>
+                          <CardTitle className="text-lg">{flow.title}</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <ol className="space-y-3 text-sm text-muted-foreground">
+                          {flow.steps.map((step, index) => (
+                            <li key={step} className="flex gap-3">
+                              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                                {index + 1}
+                              </span>
+                              <span className="pt-0.5">{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </Section>
 
-          <Section
-            id="scoring"
-            eyebrow="Scoring"
-            title="How the SkillHire score is computed"
-            description="The worker calculates normalized technical signals, applies weights, subtracts penalties, multiplies by trust, and optionally blends in LeetCode."
-          >
-            <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-              <Card className="h-full">
-                <CardHeader className="flex-col items-start gap-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-primary" />
-                    Score pipeline
-                  </CardTitle>
-                  <CardDescription>Implemented by the analysis worker and scoring services.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm text-muted-foreground">
-                  <div className="rounded-xl border border-border bg-secondary/50 p-4 font-mono text-xs">
-                    normalize(rawMetrics) → weighted score → gaming penalty → trust multiplier → optional LeetCode
-                  </div>
-                  <BulletList
-                    items={[
-                      "Gaming penalties apply for suspicious patterns like many repos with zero stars, commit spikes with low active weeks, or PR spam with low merges.",
-                      "Trust score reduces the result when evidence is weak, such as zero stars, zero external PRs, or very low active weeks.",
-                      "Confidence score is also computed so the system can explain how much evidence exists behind the final number.",
-                      "If LeetCode data exists, GitHub score is scaled to 85% and LeetCode contributes up to 15%; no LeetCode does not create a penalty.",
-                    ]}
-                  />
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="flex-col items-start gap-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <GitBranch className="w-5 h-5 text-primary" />
-                    Weight map
-                  </CardTitle>
-                  <CardDescription>Current weights from weightService.js.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {scoreWeights.map(([name, weight]) => (
-                      <div key={name} className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm">
-                        <span className="font-mono text-foreground">{name}</span>
-                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{weight}</span>
+              <Section
+                id="scoring"
+                eyebrow="Scoring"
+                title="How the SkillHire score is computed"
+                description="The worker calculates normalized technical signals, applies weights, subtracts penalties, multiplies by trust, and optionally blends in LeetCode."
+              >
+                <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-primary" />
+                        Score pipeline
+                      </CardTitle>
+                      <CardDescription>Implemented by the analysis worker and scoring services.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm text-muted-foreground">
+                      <div className="rounded-xl border border-border bg-secondary/50 p-4 font-mono text-xs">
+                        normalize(rawMetrics) → weighted score → gaming penalty → trust multiplier → optional LeetCode
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </Section>
+                      <BulletList
+                        items={[
+                          "Gaming penalties apply for suspicious patterns like many repos with zero stars, commit spikes with low active weeks, or PR spam with low merges.",
+                          "Trust score reduces the result when evidence is weak, such as zero stars, zero external PRs, or very low active weeks.",
+                          "Confidence score is also computed so the system can explain how much evidence exists behind the final number.",
+                          "If LeetCode data exists, GitHub score is scaled to 85% and LeetCode contributes up to 15%; no LeetCode does not create a penalty.",
+                        ]}
+                      />
+                    </CardContent>
+                  </Card>
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <GitBranch className="w-5 h-5 text-primary" />
+                        Weight map
+                      </CardTitle>
+                      <CardDescription>Current weights from weightService.js.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {scoreWeights.map(([name, weight]) => (
+                          <div key={name} className="flex items-center justify-between rounded-xl border border-border bg-card p-3 text-sm">
+                            <span className="font-mono text-foreground">{name}</span>
+                            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{weight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </Section>
 
-          <Section
-            id="apis"
-            eyebrow="APIs"
-            title="Backend API surface"
-            description="The backend is intentionally route-grouped by product capability."
-          >
-            <div className="grid gap-5 xl:grid-cols-2">
-              {apiModules.map((group) => (
-                <Card key={group.title}>
-                  <CardHeader className="flex-col items-start gap-2">
-                    <CardTitle className="text-lg">{group.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BulletList items={group.endpoints} />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </Section>
+              <Section
+                id="apis"
+                eyebrow="APIs"
+                title="Backend API surface"
+                description="The backend is intentionally route-grouped by product capability."
+              >
+                <div className="grid gap-5 xl:grid-cols-2">
+                  {apiModules.map((group) => (
+                    <Card key={group.title}>
+                      <CardHeader className="flex-col items-start gap-2">
+                        <CardTitle className="text-lg">{group.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <BulletList items={group.endpoints} />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </Section>
 
-          <Section
-            id="security"
-            eyebrow="Security"
-            title="Trust, auth, and operational controls"
-            description="These are the safeguards and runtime behaviors directly visible in the code."
-          >
-            <div className="grid gap-5 lg:grid-cols-3">
-              <Card className="h-full">
-                <CardHeader className="flex-col items-start gap-3">
-                  <Lock className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Authentication</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BulletList
-                    items={[
-                      "Developer accounts use GitHub OAuth and a JWT auth cookie.",
-                      "Recruiter accounts use OTP registration plus password login and the same JWT cookie pattern.",
-                      "Protected APIs resolve the current user from the cookie into a Profile document.",
-                    ]}
-                  />
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="flex-col items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Abuse Controls</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BulletList
-                    items={[
-                      "Analysis requests are throttled with Redis locks and cooldown windows.",
-                      "Duplicate connection and referral requests are blocked by compound indexes and controller checks.",
-                      "Message sends are gated behind accepted connection or accepted referral status.",
-                    ]}
-                  />
-                </CardContent>
-              </Card>
-              <Card className="h-full">
-                <CardHeader className="flex-col items-start gap-3">
-                  <Bot className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Async Reliability</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BulletList
-                    items={[
-                      "BullMQ jobs retry with exponential backoff.",
-                      "Analysis records move through queued → processing → completed/failed states.",
-                      "Worker completion invalidates leaderboard cache so fresh rankings appear after re-analysis.",
-                    ]}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </Section>
+              <Section
+                id="security"
+                eyebrow="Security"
+                title="Trust, auth, and operational controls"
+                description="These are the safeguards and runtime behaviors directly visible in the code."
+              >
+                <div className="grid gap-5 lg:grid-cols-3">
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-3">
+                      <Lock className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-lg">Authentication</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList
+                        items={[
+                          "Developer accounts use GitHub OAuth and a JWT auth cookie.",
+                          "Recruiter accounts use OTP registration plus password login and the same JWT cookie pattern.",
+                          "Protected APIs resolve the current user from the cookie into a Profile document.",
+                        ]}
+                      />
+                    </CardContent>
+                  </Card>
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-3">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-lg">Abuse Controls</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList
+                        items={[
+                          "Analysis requests are throttled with Redis locks and cooldown windows.",
+                          "Duplicate connection and referral requests are blocked by compound indexes and controller checks.",
+                          "Message sends are gated behind accepted connection or accepted referral status.",
+                        ]}
+                      />
+                    </CardContent>
+                  </Card>
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-3">
+                      <Bot className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-lg">Async Reliability</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList
+                        items={[
+                          "BullMQ jobs retry with exponential backoff.",
+                          "Analysis records move through queued → processing → completed/failed states.",
+                          "Worker completion invalidates leaderboard cache so fresh rankings appear after re-analysis.",
+                        ]}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </Section>
 
-          <Section
-            id="ops"
-            eyebrow="Operations"
-            title="Operational notes and architecture caveats"
-            description="These details matter for anyone maintaining or extending the system."
-          >
-            <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-              <Card>
-                <CardHeader className="flex-col items-start gap-2">
-                  <CardTitle className="text-lg">What to know in production</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BulletList items={operationalNotes} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex-col items-start gap-2">
-                  <CardTitle className="text-lg">Current architecture caveats</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BulletList items={engineeringRisks} />
-                </CardContent>
-              </Card>
-            </div>
-          </Section>
+              <Section
+                id="ops"
+                eyebrow="Operations"
+                title="Operational notes and architecture caveats"
+                description="These details matter for anyone maintaining or extending the system."
+              >
+                <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+                  <Card>
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg">What to know in production</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList items={operationalNotes} />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg">Current architecture caveats</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList items={engineeringRisks} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </Section>
             </div>
           </div>
         </div>
