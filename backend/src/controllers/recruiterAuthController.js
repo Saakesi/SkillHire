@@ -239,6 +239,6 @@ export const changePassword = async (req, res) => {
 
 
 export const recruiterLogout = (req, res) => {
-  res.clearCookie("auth", { httpOnly: true, sameSite: "lax", secure: false, path: "/" });
+  res.clearCookie("auth", { httpOnly: true, sameSite: "none", secure: true, path: "/" });
   res.json({ message: "Logged out" });
 };
