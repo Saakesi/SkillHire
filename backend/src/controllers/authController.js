@@ -104,9 +104,12 @@ export const githubCallback = async (req, res) => {
     // Redirect to frontend dashboard
     res.redirect(`${FRONTEND_URL}/dashboard`);
   } catch (err) {
-    console.error("Error in GitHub OAuth callback:", err);
-    res.status(500).json({ error: "OAuth failed" });
-  }
+      console.error("ERROR:", err.response?.data || err.message);
+      res.status(500).json({
+      error: "OAuth failed",
+      details: err.response?.data || err.message
+  });
+}
 };
 
 
