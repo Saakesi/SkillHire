@@ -58,11 +58,11 @@ router.post("/:username", requireAuth, async (req, res) => {
     if (!receiver) {
       return res.status(404).json({ error: "User not found." });
     }
-    /*
-       if (receiver._id.equals(req.user._id)) {
-         return res.status(400).json({ error: "Cannot message yourself." });
-       }
-    */
+
+    if (receiver._id.equals(req.user._id)) {
+      return res.status(400).json({ error: "Cannot message yourself." });
+    }
+
     // ✅ Check if messaging is allowed
     const { allowed, connectionId, referralId } = await canMessage(
       req.user._id,

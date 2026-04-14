@@ -125,7 +125,7 @@ app.get("/ping", (req, res) => {
     uptime: process.uptime(),
   });
 });
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
