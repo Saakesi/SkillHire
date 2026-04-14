@@ -1,15 +1,25 @@
 import nodemailer from "nodemailer";
 
-const getTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
+const getTransporter = () => {
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  console.log(`📧 SMTP Config: host=${host}, port=${port}, user=${user ? "set" : "NOT SET"}`);
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // use TLS for port 587, SSL for 465
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user,
+      pass,
     },
+    connectionTimeout: 10000, // 10 second timeout
+    socketTimeout: 10000,
   });
+};
 
 export const sendOTPEmail = async (email, otp, purpose) => {
   const isRegister = purpose === "register";
@@ -43,14 +53,23 @@ export const sendOTPEmail = async (email, otp, purpose) => {
   `;
 
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log(`\n📧 OTP for ${email}: ${otp} (purpose: ${purpose})\n`);
+    console.warn(
+      `\n⚠️  SMTP credentials not configured. OTP for ${email}: ${otp} (purpose: ${purpose})\n` +
+      `Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS to send real emails.\n`
+    );
     return;
   }
 
-  await getTransporter().sendMail({
-    from: `"SkillHire" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject,
-    html,
-  });
+  try {
+    await getTransporter().sendMail({
+      from: `"SkillHire" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject,
+      html,
+    });
+    console.log(`✅ OTP email sent to ${email}`);
+  } catch (error) {
+    console.error(`❌ Failed to send OTP email to ${email}:`, error.message);
+    throw error;
+  }
 };
