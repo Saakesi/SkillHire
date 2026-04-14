@@ -11,13 +11,18 @@ const ProfileSchema = new mongoose.Schema({
   // ── developer fields ────────────────────────────────────────────────────────
   githubId: {
     type: Number,
-    unique: true,
-    sparse: true
+    index: {
+      unique: true,
+      partialFilterExpression: { githubId: { $exists: true } }
+    }
   },
+
   username: {
     type: String,
-    unique: true,
-    sparse: true
+    index: {
+      unique: true,
+      partialFilterExpression: { username: { $exists: true } }
+    }
   },
   avatarUrl: { type: String },
   bio: { type: String, default: "" },
