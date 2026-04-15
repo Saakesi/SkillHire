@@ -4,18 +4,11 @@ import bcrypt from "bcrypt";
 import Profile from "../models/Profile.js";
 import RecruiterOTP from "../models/RecruiterOTP.js";
 import { sendOTPEmail } from "../services/email/emailService.js";
+import { AUTH_COOKIE_CLEAR_OPTIONS, AUTH_COOKIE_OPTIONS } from "../config/authCookie.js";
 
 const SALT_ROUNDS = 10;
 
 const generateOTP = () => String(crypto.randomInt(100000, 999999));
-
-const COOKIE_OPTS = {
-  httpOnly: true,
-  sameSite: "none",
-  secure: true,
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-};
 
 const issueToken = (profile) =>
   jwt.sign(
@@ -80,8 +73,8 @@ export const registerVerifyOTP = async (req, res) => {
       email, name, company, designation, passwordHash,
     });
 
-    res.clearCookie("auth", { path: "/" });
-    res.cookie("auth", issueToken(profile), COOKIE_OPTS);
+    res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
+    res.cookie("auth", issueToken(profile), AUTH_COOKIE_OPTIONS);
 
     return res.status(201).json({
       message: "Account created",
@@ -109,8 +102,8 @@ export const login = async (req, res) => {
     const match = await bcrypt.compare(password, profile.passwordHash);
     if (!match) return res.status(401).json({ error: "Incorrect password" });
 
-    res.clearCookie("auth", { path: "/" });
-    res.cookie("auth", issueToken(profile), COOKIE_OPTS);
+    res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
+    res.cookie("auth", issueToken(profile), AUTH_COOKIE_OPTIONS);
 
     return res.json({
       message: "Logged in",
@@ -239,6 +232,6 @@ export const changePassword = async (req, res) => {
 
 
 export const recruiterLogout = (req, res) => {
-  res.clearCookie("auth", { httpOnly: true, sameSite: "none", secure: true, path: "/" });
+  res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
   res.json({ message: "Logged out" });
 };

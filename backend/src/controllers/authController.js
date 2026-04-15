@@ -2,6 +2,7 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 import { addFetchReposJob } from "../jobs/fetchReposJob.js";
 import Profile from "../models/Profile.js"; // your Mongoose model
+import { AUTH_COOKIE_CLEAR_OPTIONS, AUTH_COOKIE_OPTIONS } from "../config/authCookie.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
@@ -91,15 +92,8 @@ export const githubCallback = async (req, res) => {
     // -------------------------
     // SET COOKIE
     // -------------------------
-    res.clearCookie("auth", { path: "/" });
-
-    res.cookie("auth", jwtToken, {
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-      path: "/",   // set true in production with HTTPS
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
+    res.cookie("auth", jwtToken, AUTH_COOKIE_OPTIONS);
 
     // Redirect to frontend dashboard
     res.redirect(`${FRONTEND_URL}/dashboard`);
@@ -156,12 +150,7 @@ export const getMe = async (req, res) => {
 
 export const logout = (req, res) => {
   console.log("Clearing auth cookie");
-  res.clearCookie("auth", {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
-    path: "/"
-  });
+  res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
 
   res.json({ message: "Logged out successfully" });
 };

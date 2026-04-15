@@ -24,9 +24,28 @@ console.log("BACKEND STARTED FROM:", process.cwd());
 dotenv.config();
 console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
 
-const FRONTEND_URLS = process.env.FRONTEND_URLS
-  ? process.env.FRONTEND_URLS.split(",")
-  : ["http://localhost:5173"];
+const FRONTEND_URLS = (() => {
+  const values = [];
+
+  if (process.env.FRONTEND_URLS) {
+    values.push(
+      ...process.env.FRONTEND_URLS
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    );
+  }
+
+  if (process.env.FRONTEND_URL) {
+    values.push(process.env.FRONTEND_URL.trim());
+  }
+
+  if (values.length === 0) {
+    values.push("http://localhost:5173");
+  }
+
+  return [...new Set(values)];
+})();
 const PORT = Number(process.env.PORT || 5000);
 
 
