@@ -19,8 +19,17 @@ import { AuthCallback } from "./pages/AuthCallback";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import axios from "axios";
+import { authToken } from "./services/authToken";
 
 axios.defaults.withCredentials = true;
+axios.interceptors.request.use((config) => {
+  const bearer = authToken.asAuthorizationHeader();
+  if (bearer) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = bearer;
+  }
+  return config;
+});
 
 function HomeRoute() {
   const { loading, isAuthenticated, role } = useAuth();

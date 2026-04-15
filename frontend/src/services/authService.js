@@ -1,3 +1,4 @@
+import { authToken } from "./authToken";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export const authService = {
@@ -13,8 +14,10 @@ export const authService = {
     //  Backend should read cookie / token
 
     async getCurrentUser() {
+        const authorization = authToken.asAuthorizationHeader();
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
             credentials: 'include', // req for cookies
+            headers: authorization ? { Authorization: authorization } : undefined,
         });
 
         if (!res.ok) return null;
@@ -22,9 +25,12 @@ export const authService = {
     },
 
     async logout() {
+        const authorization = authToken.asAuthorizationHeader();
         await fetch(`${API_BASE_URL}/api/auth/logout`, {
             method: 'POST',
             credentials: 'include',
+            headers: authorization ? { Authorization: authorization } : undefined,
         });
+        authToken.clear();
     },
 };

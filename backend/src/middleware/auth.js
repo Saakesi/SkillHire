@@ -1,11 +1,12 @@
 // src/middleware/auth.js
 import jwt from "jsonwebtoken";
 import Profile from "../models/Profile.js";
+import { extractAuthToken } from "../utils/authToken.js";
 
 export const requireAuth = async (req, res, next) => {
   try {
     // 1. Read JWT from cookie — matches how githubCallback sets it
-    const token = req.cookies.auth;
+    const token = extractAuthToken(req);
 
     if (!token) {
       return res.status(401).json({ error: "Not logged in." });

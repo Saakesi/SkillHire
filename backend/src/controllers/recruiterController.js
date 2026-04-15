@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
 import Analysis from "../models/Analysis.js";
 import Profile from "../models/Profile.js";
+import { extractAuthToken } from "../utils/authToken.js";
 
 // ── helper: get authenticated recruiter profile ───────────────────────────────
 const getRecruiter = async (req) => {
-  const token = req.cookies.auth;
+  const token = extractAuthToken(req);
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

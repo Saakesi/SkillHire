@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { addFetchReposJob } from "../jobs/fetchReposJob.js";
 import Profile from "../models/Profile.js"; // your Mongoose model
 import { AUTH_COOKIE_CLEAR_OPTIONS, AUTH_COOKIE_OPTIONS } from "../config/authCookie.js";
+import { extractAuthToken } from "../utils/authToken.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
@@ -110,7 +111,7 @@ export const githubCallback = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    const token = req.cookies.auth;
+    const token = extractAuthToken(req);
     if (!token) {
       return res.status(401).json({ error: "Not authenticated" });
     }

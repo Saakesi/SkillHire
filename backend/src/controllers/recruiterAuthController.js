@@ -5,6 +5,7 @@ import Profile from "../models/Profile.js";
 import RecruiterOTP from "../models/RecruiterOTP.js";
 import { sendOTPEmail } from "../services/email/emailService.js";
 import { AUTH_COOKIE_CLEAR_OPTIONS, AUTH_COOKIE_OPTIONS } from "../config/authCookie.js";
+import { extractAuthToken } from "../utils/authToken.js";
 
 const SALT_ROUNDS = 10;
 
@@ -73,11 +74,13 @@ export const registerVerifyOTP = async (req, res) => {
       email, name, company, designation, passwordHash,
     });
 
+    const token = issueToken(profile);
     res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
-    res.cookie("auth", issueToken(profile), AUTH_COOKIE_OPTIONS);
+    res.cookie("auth", token, AUTH_COOKIE_OPTIONS);
 
     return res.status(201).json({
       message: "Account created",
+      token,
       recruiter: {
         id: profile._id, email: profile.email,
         name: profile.name, company: profile.company, designation: profile.designation,
@@ -102,11 +105,13 @@ export const login = async (req, res) => {
     const match = await bcrypt.compare(password, profile.passwordHash);
     if (!match) return res.status(401).json({ error: "Incorrect password" });
 
+    const token = issueToken(profile);
     res.clearCookie("auth", AUTH_COOKIE_CLEAR_OPTIONS);
-    res.cookie("auth", issueToken(profile), AUTH_COOKIE_OPTIONS);
+    res.cookie("auth", token, AUTH_COOKIE_OPTIONS);
 
     return res.json({
       message: "Logged in",
+      token,
       recruiter: {
         id: profile._id, email: profile.email,
         name: profile.name, company: profile.company, designation: profile.designation,
@@ -141,7 +146,7 @@ export const resendOTP = async (req, res) => {
 
 export const getRecruiterMe = async (req, res) => {
   try {
-    const token = req.cookies.auth;
+    const token = extractAuthToken(req);
     if (!token) return res.status(401).json({ error: "Not authenticated" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -159,7 +164,7 @@ export const getRecruiterMe = async (req, res) => {
 
 export const updateRecruiterProfile = async (req, res) => {
   try {
-    const token = req.cookies.auth;
+    const token = extractAuthToken(req);
     if (!token) return res.status(401).json({ error: "Not authenticated" });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== "recruiter") return res.status(403).json({ error: "Forbidden" });
@@ -207,7 +212,7 @@ export const updateRecruiterProfile = async (req, res) => {
 
 export const changePassword = async (req, res) => {
   try {
-    const token = req.cookies.auth;
+    const token = extractAuthToken(req);
     if (!token) return res.status(401).json({ error: "Not authenticated" });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== "recruiter") return res.status(403).json({ error: "Forbidden" });

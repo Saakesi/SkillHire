@@ -4,10 +4,11 @@ import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 import { connection as redis } from "../redisClient.js";
 import crypto from "crypto";
+import { extractAuthToken } from "../utils/authToken.js";
 
 // Helper: get user from JWT cookie
 const getUserFromCookie = (req) => {
-  const token = req.cookies.auth;
+  const token = extractAuthToken(req);
   if (!token) return null;
   try {
     return jwt.verify(token, process.env.JWT_SECRET);

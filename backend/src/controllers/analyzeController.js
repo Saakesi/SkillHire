@@ -4,12 +4,13 @@ import jwt from "jsonwebtoken";
 
 import Analysis from "../models/Analysis.js";
 import { connection as redis } from "../redisClient.js";
+import { extractAuthToken } from "../utils/authToken.js";
 
 const ANALYZE_COOLDOWN_SECONDS = Number(process.env.ANALYZE_COOLDOWN_SECONDS || 300);
 const REQUEST_LOCK_SECONDS = Number(process.env.ANALYZE_REQUEST_LOCK_SECONDS || 20);
 
 export const analyzeProfile = async (req, res) => {
-  const token = req.cookies.auth;
+  const token = extractAuthToken(req);
   if (!token) return res.status(401).json({ error: "Not logged in" });
 
   let user;

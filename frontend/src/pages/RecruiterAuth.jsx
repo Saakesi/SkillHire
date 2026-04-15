@@ -7,6 +7,7 @@ import {
   Github, Shield, CheckCircle2, Eye, EyeOff, Search, Bookmark
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { authToken } from "../services/authToken";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -172,8 +173,9 @@ function LoginForm({ onSuccess, onSwitchToRegister }) {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/api/recruiter/auth/login`,
+      const res = await axios.post(`${API}/api/recruiter/auth/login`,
         { email, password }, { withCredentials: true });
+      authToken.set(res.data?.token);
       await onSuccess();
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
@@ -273,8 +275,9 @@ function RegisterForm({ onSuccess, onSwitchToLogin }) {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/api/recruiter/auth/register/verify-otp`,
+      const res = await axios.post(`${API}/api/recruiter/auth/register/verify-otp`,
         { email, otp }, { withCredentials: true });
+      authToken.set(res.data?.token);
       await onSuccess();
     } catch (err) {
       setError(err.response?.data?.error || "Invalid code");
