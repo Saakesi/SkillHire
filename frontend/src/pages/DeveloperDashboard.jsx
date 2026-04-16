@@ -878,7 +878,7 @@ export const DeveloperDashboard = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                             {/* LEFT: Activity + Languages */}
-                            <div className="lg:col-span-2 space-y-6">
+                            <div className="lg:col-span-2 space-y-6 h-full flex flex-col">
 
                                 {/* Activity chart */}
                                 <motion.div
@@ -961,8 +961,9 @@ export const DeveloperDashboard = () => {
                                     <motion.div
                                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                        className="flex-1"
                                     >
-                                        <Card>
+                                        <Card className="h-full">
                                             <CardHeader>
                                                 <CardTitle className="flex items-center justify-between">
                                                     <span className="flex items-center gap-2">
@@ -1037,14 +1038,15 @@ export const DeveloperDashboard = () => {
                                     <motion.div
                                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                        className="flex-1"
                                     >
-                                        <Card>
+                                        <Card className="h-full">
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2">
                                                     <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent>
+                                            <CardContent className="h-full">
                                                 <p className="text-sm text-muted-foreground">
                                                     LeetCode profile not connected yet. Add your username above and click Analyze.
                                                 </p>
