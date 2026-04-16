@@ -183,85 +183,6 @@ function SectionTitle({ icon, children }) {
     );
 }
 
-function LeetcodeSection({ lc, lcScore, topAlgoTags }) {
-    if (!lc?.solved) return null;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }} transition={{ duration: 0.4 }}
-        >
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode Score
-                        </span>
-                        <span className="text-sm font-normal text-muted-foreground">
-                            <span>: </span><span className="font-bold font-mono text-foreground">{lcScore}</span>/100
-                        </span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="grid grid-cols-4 gap-2">
-                        <div className="text-center py-2.5 px-2 rounded-lg bg-secondary">
-                            <div className="text-lg font-bold font-mono">{lc.solved.total}</div>
-                            <div className="text-xs text-muted-foreground">Total</div>
-                        </div>
-                        <div className="text-center py-2.5 px-2 rounded-lg bg-green-500/10 border border-green-500/20">
-                            <div className="text-lg font-bold font-mono text-green-500">{lc.solved.easy}</div>
-                            <div className="text-xs text-muted-foreground">Easy</div>
-                        </div>
-                        <div className="text-center py-2.5 px-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                            <div className="text-lg font-bold font-mono text-yellow-500">{lc.solved.medium}</div>
-                            <div className="text-xs text-muted-foreground">Medium</div>
-                        </div>
-                        <div className="text-center py-2.5 px-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                            <div className="text-lg font-bold font-mono text-red-500">{lc.solved.hard}</div>
-                            <div className="text-xs text-muted-foreground">Hard</div>
-                        </div>
-                    </div>
-
-                    {lc.contest?.rating > 0 && (
-                        <div className="flex items-center gap-0 rounded-lg bg-secondary overflow-hidden divide-x divide-border">
-                            <div className="flex-1 text-center py-2.5 px-3">
-                                <div className="text-xs text-muted-foreground">Rating</div>
-                                <div className="text-base font-bold font-mono">{Math.round(lc.contest.rating)}</div>
-                            </div>
-                            {lc.contest.globalRank && (
-                                <div className="flex-1 text-center py-2.5 px-3">
-                                    <div className="text-xs text-muted-foreground">Global Rank</div>
-                                    <div className="text-base font-bold font-mono">#{lc.contest.globalRank.toLocaleString()}</div>
-                                </div>
-                            )}
-                            {lc.contest.contestsAttended > 0 && (
-                                <div className="flex-1 text-center py-2.5 px-3">
-                                    <div className="text-xs text-muted-foreground">Contests</div>
-                                    <div className="text-base font-bold font-mono">{lc.contest.contestsAttended}</div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {topAlgoTags.length > 0 && (
-                        <div>
-                            <p className="text-xs text-muted-foreground mb-2">Top Algorithm Tags</p>
-                            <div className="flex flex-wrap gap-2">
-                                {topAlgoTags.map(tag => (
-                                    <span key={tag.tagName}
-                                        className="px-2 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
-                                        {tag.tagName} · {tag.problemsSolved}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </motion.div>
-    );
-}
-
 export const DeveloperDashboard = () => {
     const { profile, isAuthenticated } = useAuth();
 
@@ -549,19 +470,6 @@ export const DeveloperDashboard = () => {
     // LeetCode
     const lc = analysis?.leetcodeMetrics;
     const lcScore = analysis?.leetcodeScore || 0;
-    const normalizedLeetcodeUsername = (leetcodeUsername || "").trim();
-    const hasLeetcodeUsername = normalizedLeetcodeUsername.length > 0;
-    const hasLeetcodeData = Boolean(
-        lc && (
-            (lc.solved?.total || 0) > 0 ||
-            (lc.contest?.rating || 0) > 0 ||
-            (lc.languages || []).some((item) => (item?.problemsSolved || 0) > 0) ||
-            (lc.algorithms?.advanced || []).length > 0 ||
-            (lc.algorithms?.intermediate || []).length > 0 ||
-            (lc.algorithms?.fundamental || []).length > 0
-        )
-    );
-    const shouldRenderLeetcodeSection = hasLeetcodeUsername && hasLeetcodeData;
 
     // Top algorithm tags (advanced first, then intermediate)
     const topAlgoTags = useMemo(() => {
@@ -572,14 +480,6 @@ export const DeveloperDashboard = () => {
             .sort((a, b) => b.problemsSolved - a.problemsSolved)
             .slice(0, 6);
     }, [lc]);
-
-    const startLeetcodeEdit = () => {
-        setEditingLeetcode(true);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        setTimeout(() => {
-            document.getElementById("leetcode-input")?.focus();
-        }, 180);
-    };
 
     if (!profile) return <PageLoader />;
 
@@ -664,51 +564,33 @@ export const DeveloperDashboard = () => {
                                     </div>
 
                                     {/* LeetCode username */}
-                                    <div className="mt-2">
-                                        {editingLeetcode && (
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    id="leetcode-input"
-                                                    value={leetcodeUsername}
-                                                    onChange={e => setLeetcodeUsername(e.target.value)}
-                                                    placeholder="LeetCode username"
-                                                    className="border border-border rounded-lg px-2 py-1 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary w-44"
-                                                />
-                                                <Button size="sm" onClick={saveLeetcodeUsername} disabled={savingLeetcode}>
-                                                    {savingLeetcode ? "…" : "Save"}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => {
-                                                        setEditingLeetcode(false);
-                                                        setLeetcodeUsername(profile.leetcodeUsername || "");
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                            </div>
-                                        )}
-
-                                        {!editingLeetcode && hasLeetcodeUsername && (
-                                            <div className="flex items-center gap-2">
+                                    <div className="mt-2 flex items-center gap-2">
+                                        {!editingLeetcode ? (
+                                            <>
                                                 <span className="text-xs text-muted-foreground">
-                                                    LeetCode: <span className="text-foreground font-medium">{normalizedLeetcodeUsername}</span>
+                                                    LeetCode: <span className={leetcodeUsername ? "text-foreground font-medium" : ""}>
+                                                        {leetcodeUsername || "not connected"}
+                                                    </span>
                                                 </span>
-                                                <button onClick={startLeetcodeEdit}
+                                                <button onClick={() => setEditingLeetcode(true)}
                                                     className="text-muted-foreground hover:text-primary">
                                                     <Pencil className="w-3 h-3" />
                                                 </button>
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <input value={leetcodeUsername}
+                                                    onChange={e => setLeetcodeUsername(e.target.value)}
+                                                    placeholder="LeetCode username"
+                                                    className="border border-border rounded-lg px-2 py-1 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary w-44" />
+                                                <Button size="sm" onClick={saveLeetcodeUsername} disabled={savingLeetcode}>
+                                                    {savingLeetcode ? "…" : "Save"}
+                                                </Button>
+                                                <Button size="sm" variant="outline"
+                                                    onClick={() => { setEditingLeetcode(false); setLeetcodeUsername(profile.leetcodeUsername || ""); }}>
+                                                    Cancel
+                                                </Button>
                                             </div>
-                                        )}
-
-                                        {!editingLeetcode && !hasLeetcodeUsername && (
-                                            <button
-                                                onClick={startLeetcodeEdit}
-                                                className="text-xs font-medium text-primary hover:underline"
-                                            >
-                                                Add Username
-                                            </button>
                                         )}
                                     </div>
                                     {/* 🎓 College Info */}
@@ -1075,8 +957,100 @@ export const DeveloperDashboard = () => {
                                 </motion.div>
 
                                 {/* LeetCode Section */}
-                                {shouldRenderLeetcodeSection && (
-                                    <LeetcodeSection lc={lc} lcScore={lcScore} topAlgoTags={topAlgoTags} />
+                                {lc && lc.solved?.total > 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center justify-between">
+                                                    <span className="flex items-center gap-2">
+                                                        <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode Score
+                                                    </span>
+                                                    <span className="text-sm font-normal text-muted-foreground">
+                                                        <span>: </span><span className="font-bold font-mono text-foreground">{lcScore}</span>/100
+                                                    </span>
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                {/* Solved breakdown */}
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-secondary">
+                                                        <div className="text-lg font-bold font-mono">{lc.solved.total}</div>
+                                                        <div className="text-xs text-muted-foreground">Total</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                                                        <div className="text-lg font-bold font-mono text-green-500">{lc.solved.easy}</div>
+                                                        <div className="text-xs text-muted-foreground">Easy</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                                                        <div className="text-lg font-bold font-mono text-yellow-500">{lc.solved.medium}</div>
+                                                        <div className="text-xs text-muted-foreground">Medium</div>
+                                                    </div>
+                                                    <div className="text-center py-2.5 px-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                                                        <div className="text-lg font-bold font-mono text-red-500">{lc.solved.hard}</div>
+                                                        <div className="text-xs text-muted-foreground">Hard</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Contest rating */}
+                                                {lc.contest?.rating > 0 && (
+                                                    <div className="flex items-center gap-0 rounded-lg bg-secondary overflow-hidden divide-x divide-border">
+                                                        <div className="flex-1 text-center py-2.5 px-3">
+                                                            <div className="text-xs text-muted-foreground">Rating</div>
+                                                            <div className="text-base font-bold font-mono">{Math.round(lc.contest.rating)}</div>
+                                                        </div>
+                                                        {lc.contest.globalRank && (
+                                                            <div className="flex-1 text-center py-2.5 px-3">
+                                                                <div className="text-xs text-muted-foreground">Global Rank</div>
+                                                                <div className="text-base font-bold font-mono">#{lc.contest.globalRank.toLocaleString()}</div>
+                                                            </div>
+                                                        )}
+                                                        {lc.contest.contestsAttended > 0 && (
+                                                            <div className="flex-1 text-center py-2.5 px-3">
+                                                                <div className="text-xs text-muted-foreground">Contests</div>
+                                                                <div className="text-base font-bold font-mono">{lc.contest.contestsAttended}</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Top algorithm tags */}
+                                                {topAlgoTags.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-2">Top Algorithm Tags</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {topAlgoTags.map(tag => (
+                                                                <span key={tag.tagName}
+                                                                    className="px-2 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20">
+                                                                    {tag.tagName} · {tag.problemsSolved}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2">
+                                                    <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <p className="text-sm text-muted-foreground">
+                                                    LeetCode profile not connected yet. Add your username above and click Analyze.
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
                                 )}
                             </div>
 
