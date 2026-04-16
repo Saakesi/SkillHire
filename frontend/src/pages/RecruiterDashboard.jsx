@@ -245,7 +245,7 @@ export default function RecruiterDashboard() {
               <div key={i} className="h-20 rounded-xl border border-border bg-card animate-pulse" />
             ))}
           </div>
-        ) : stats && (
+        ) : stats ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <StatCard icon={<Users className="w-4 h-4" />} label="Indexed Developers" value={stats.totalDevelopers.toLocaleString()} />
             <StatCard icon={<BarChart3 className="w-4 h-4" />} label="Avg Score" value={stats.avgScore} sub={`Max ${stats.maxScore}`} />
