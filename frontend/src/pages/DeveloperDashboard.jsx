@@ -470,6 +470,13 @@ export const DeveloperDashboard = () => {
     // LeetCode
     const lc = analysis?.leetcodeMetrics;
     const lcScore = analysis?.leetcodeScore || 0;
+    const hasLeetcodeData =
+        lc &&
+        (
+            lc.solved?.total > 0 ||
+            lc.contest?.rating > 0 ||
+            (lc.algorithms?.advanced?.length || 0) > 0
+        );
 
     // Top algorithm tags (advanced first, then intermediate)
     const topAlgoTags = useMemo(() => {
@@ -564,35 +571,37 @@ export const DeveloperDashboard = () => {
                                     </div>
 
                                     {/* LeetCode username */}
-                                    <div className="mt-2 flex items-center gap-2">
-                                        {!editingLeetcode ? (
-                                            <>
-                                                <span className="text-xs text-muted-foreground">
-                                                    LeetCode: <span className={leetcodeUsername ? "text-foreground font-medium" : ""}>
-                                                        {leetcodeUsername || "not connected"}
+                                    {(leetcodeUsername || editingLeetcode) && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                            {!editingLeetcode ? (
+                                                <>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        LeetCode: <span className={leetcodeUsername ? "text-foreground font-medium" : ""}>
+                                                            {leetcodeUsername || "not connected"}
+                                                        </span>
                                                     </span>
-                                                </span>
-                                                <button onClick={() => setEditingLeetcode(true)}
-                                                    className="text-muted-foreground hover:text-primary">
-                                                    <Pencil className="w-3 h-3" />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <div className="flex items-center gap-2">
-                                                <input value={leetcodeUsername}
-                                                    onChange={e => setLeetcodeUsername(e.target.value)}
-                                                    placeholder="LeetCode username"
-                                                    className="border border-border rounded-lg px-2 py-1 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary w-44" />
-                                                <Button size="sm" onClick={saveLeetcodeUsername} disabled={savingLeetcode}>
-                                                    {savingLeetcode ? "…" : "Save"}
-                                                </Button>
-                                                <Button size="sm" variant="outline"
-                                                    onClick={() => { setEditingLeetcode(false); setLeetcodeUsername(profile.leetcodeUsername || ""); }}>
-                                                    Cancel
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
+                                                    <button onClick={() => setEditingLeetcode(true)}
+                                                        className="text-muted-foreground hover:text-primary">
+                                                        <Pencil className="w-3 h-3" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <input value={leetcodeUsername}
+                                                        onChange={e => setLeetcodeUsername(e.target.value)}
+                                                        placeholder="LeetCode username"
+                                                        className="border border-border rounded-lg px-2 py-1 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary w-44" />
+                                                    <Button size="sm" onClick={saveLeetcodeUsername} disabled={savingLeetcode}>
+                                                        {savingLeetcode ? "…" : "Save"}
+                                                    </Button>
+                                                    <Button size="sm" variant="outline"
+                                                        onClick={() => { setEditingLeetcode(false); setLeetcodeUsername(profile.leetcodeUsername || ""); }}>
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     {/* 🎓 College Info */}
                                     <div className="mt-2">
                                         {!editingCollege ? (
@@ -875,7 +884,7 @@ export const DeveloperDashboard = () => {
                         )}
 
                         {/* ── MAIN TWO-COLUMN GRID ── */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                             {/* LEFT: Activity + Languages */}
                             <div className="lg:col-span-2 space-y-6">
@@ -957,7 +966,7 @@ export const DeveloperDashboard = () => {
                                 </motion.div>
 
                                 {/* LeetCode Section */}
-                                {lc && lc.solved?.total > 0 ? (
+                                {hasLeetcodeData ? (
                                     <motion.div
                                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }} transition={{ duration: 0.4 }}
@@ -1035,19 +1044,21 @@ export const DeveloperDashboard = () => {
                                     </motion.div>
                                 ) : (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                                        viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                        initial={{ opacity: 0, y: 16 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ duration: 0.4 }}
                                     >
                                         <Card>
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-2">
-                                                    <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <p className="text-sm text-muted-foreground">
-                                                    LeetCode profile not connected yet. Add your username above and click Analyze.
+                                            <CardContent className="py-6 text-center">
+                                                <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
+                                                <p className="text-sm font-medium">Connect your LeetCode</p>
+                                                <p className="text-xs text-muted-foreground mb-3">
+                                                    Add your username to see problem solving stats
                                                 </p>
+                                                <Button size="sm" onClick={() => setEditingLeetcode(true)}>
+                                                    Add Username
+                                                </Button>
                                             </CardContent>
                                         </Card>
                                     </motion.div>
