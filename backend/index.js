@@ -44,7 +44,7 @@ const FRONTEND_URLS = (() => {
     values.push("http://localhost:5173");
   }
 
-  return [...new Set(values)];
+  return [...new Set(values.map((origin) => origin.replace(/\/+$/, "")))];
 })();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -105,18 +105,24 @@ io.on("connection", (socket) => {
   socket.join(`user:${socket.user._id}`);
 });
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/+$/, "");
 
-    if (FRONTEND_URLS.includes(origin)) {
+    if (FRONTEND_URLS.includes(normalizedOrigin)) {
       return callback(null, true);
     } else {
       return callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json());
