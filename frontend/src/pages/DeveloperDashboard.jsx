@@ -106,6 +106,28 @@ const SCORE_LABELS = {
     issueScore: "Issues",
 };
 
+const BADGE_DESCRIPTIONS = {
+    polyglot: "Works across multiple programming languages and adapts quickly.",
+    consistency: "Shows steady coding activity over time, not just short bursts.",
+    collaborator: "Frequently contributes in collaborative workflows like PRs and reviews.",
+    reviewer: "Actively reviews code and contributes useful review feedback.",
+    quality_focused: "Maintains strong project quality signals like tests, CI, and docs.",
+    open_source: "Has meaningful open-source style activity across repositories.",
+    trending: "Strong current momentum in coding output and profile signals.",
+    problem_solver: "Shows good problem-solving consistency, including LeetCode performance.",
+    edu_verified: "College email or institutional profile has been verified."
+};
+
+const formatBadgeLabel = (badge) =>
+    badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+const getBadgeDescription = (badge) => {
+    const key = badge.toLowerCase().replace(/\s+/g, "_");
+    if (BADGE_DESCRIPTIONS[key]) return BADGE_DESCRIPTIONS[key];
+    if (key.includes("verified")) return "Profile verification badge based on trusted identity signals.";
+    return "Awarded based on your combined GitHub, project quality, and coding activity signals.";
+};
+
 const fadeUp = {
     initial: { opacity: 0, y: 16 },
     animate: { opacity: 1, y: 0 },
@@ -168,6 +190,7 @@ export const DeveloperDashboard = () => {
     const [metrics, setMetrics] = useState(null);
     const [badges, setBadges] = useState([]);
     const [status, setStatus] = useState(null);
+    const [analysisLoading, setAnalysisLoading] = useState(true);
     const [updatedAt, setUpdatedAt] = useState(null);
     const [loading, setLoading] = useState(false);
     const [polling, setPolling] = useState(false);
@@ -180,6 +203,7 @@ export const DeveloperDashboard = () => {
     const [editingLeetcode, setEditingLeetcode] = useState(false);
     const [leetcodeUsername, setLeetcodeUsername] = useState(profile?.leetcodeUsername || "");
     const [savingLeetcode, setSavingLeetcode] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
 
     const [editingCollege, setEditingCollege] = useState(false);
     const [college, setCollege] = useState(profile?.college || null);
@@ -193,6 +217,12 @@ export const DeveloperDashboard = () => {
     const username = profile?.username;
 
     useEffect(() => {
+        if (!toastMessage) return;
+        const timer = setTimeout(() => setToastMessage(""), 2600);
+        return () => clearTimeout(timer);
+    }, [toastMessage]);
+
+    useEffect(() => {
         if (profile) {
             setCollege(profile.college || null);
             setBranch(profile.branch || "");
@@ -203,6 +233,7 @@ export const DeveloperDashboard = () => {
     // Fetch existing analysis on mount
     useEffect(() => {
         if (!username) return;
+        setAnalysisLoading(true);
         axios.get(`${API}/api/analyze/status/${username}`)
             .then(res => {
                 setAnalysis(res.data);
@@ -216,7 +247,8 @@ export const DeveloperDashboard = () => {
                     setPolling(true);
                 }
             })
-            .catch(console.error);
+            .catch(console.error)
+            .finally(() => setAnalysisLoading(false));
     }, [username]);
 
     useEffect(() => {
@@ -312,10 +344,18 @@ export const DeveloperDashboard = () => {
     const saveLeetcodeUsername = async () => {
         setSavingLeetcode(true);
         try {
-            await axios.put(`${API}/api/profile/update`, { leetcodeUsername }, { withCredentials: true });
+            const normalizedLeetcodeUsername = (leetcodeUsername || "").trim();
+            await axios.put(`${API}/api/profile/update`, { leetcodeUsername: normalizedLeetcodeUsername }, { withCredentials: true });
+            setLeetcodeUsername(normalizedLeetcodeUsername);
             setEditingLeetcode(false);
+            setToastMessage(
+                normalizedLeetcodeUsername
+                    ? "LeetCode username saved. Re-analyze to refresh your score."
+                    : "LeetCode username removed. Re-analyze to refresh your score."
+            );
         } catch (err) {
             console.error(err);
+            setToastMessage("Could not save LeetCode username. Please try again.");
         } finally {
             setSavingLeetcode(false);
         }
@@ -449,6 +489,11 @@ export const DeveloperDashboard = () => {
     return (
         <Layout showFooter={false}>
             <div className="min-h-screen bg-background pb-16">
+                {toastMessage && (
+                    <div className="fixed top-20 right-4 z-[100] max-w-xs rounded-xl border border-primary/20 bg-card px-4 py-2.5 text-sm shadow-lg">
+                        {toastMessage}
+                    </div>
+                )}
 
                 {/* ─── PROFILE HEADER ─── */}
                 <div className="border-b border-border bg-card/50 backdrop-blur-sm">
@@ -729,7 +774,7 @@ export const DeveloperDashboard = () => {
                 )}
 
                 {/* ─── EMPTY STATE ─── */}
-                {!metrics && !isAnalyzing && (
+                {!analysisLoading && !metrics && !isAnalyzing && (
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">
                         <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h2 className="text-xl font-semibold mb-2">No analysis yet</h2>
@@ -743,11 +788,15 @@ export const DeveloperDashboard = () => {
                 )}
 
                 {/* ─── ANALYZING STATE ─── */}
-                {isAnalyzing && !metrics && (
+                {(analysisLoading || isAnalyzing) && !metrics && (
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">
                         <RefreshCw className="w-10 h-10 text-primary mx-auto mb-4 animate-spin" />
-                        <h2 className="text-lg font-semibold mb-1">Analyzing your GitHub profile…</h2>
-                        <p className="text-sm text-muted-foreground">This takes about 30–60 seconds</p>
+                        <h2 className="text-lg font-semibold mb-1">
+                            {analysisLoading ? "Loading your dashboard…" : "Analyzing your GitHub profile…"}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            {analysisLoading ? "Fetching your latest analysis data" : "This takes about 30–60 seconds"}
+                        </p>
                     </div>
                 )}
 
@@ -908,7 +957,7 @@ export const DeveloperDashboard = () => {
                                 </motion.div>
 
                                 {/* LeetCode Section */}
-                                {lc && lc.solved?.total > 0 && (
+                                {lc && lc.solved?.total > 0 ? (
                                     <motion.div
                                         initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }} transition={{ duration: 0.4 }}
@@ -981,6 +1030,24 @@ export const DeveloperDashboard = () => {
                                                         </div>
                                                     </div>
                                                 )}
+                                            </CardContent>
+                                        </Card>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }} transition={{ duration: 0.4 }}
+                                    >
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2">
+                                                    <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <p className="text-sm text-muted-foreground">
+                                                    LeetCode profile not connected yet. Add your username above and click Analyze.
+                                                </p>
                                             </CardContent>
                                         </Card>
                                     </motion.div>
@@ -1132,10 +1199,19 @@ export const DeveloperDashboard = () => {
                                         <CardContent>
                                             <div className="flex flex-wrap gap-2">
                                                 {badges.map((badge, i) => (
-                                                    <span key={i}
-                                                        className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary">
-                                                        {badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                                                    </span>
+                                                    <div key={i} className="relative group">
+                                                        <button
+                                                            type="button"
+                                                            title={getBadgeDescription(badge)}
+                                                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary cursor-help"
+                                                        >
+                                                            {formatBadgeLabel(badge)}
+                                                        </button>
+                                                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-lg border border-border bg-card p-2.5 text-xs text-muted-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                                                            <p className="font-medium text-foreground mb-1">{formatBadgeLabel(badge)}</p>
+                                                            <p>{getBadgeDescription(badge)}</p>
+                                                        </div>
+                                                    </div>
                                                 ))}
                                             </div>
                                         </CardContent>

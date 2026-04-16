@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const sizes = {
   sm: 'w-8 h-8 text-xs',
@@ -17,14 +17,23 @@ export const Avatar = ({
   status,
   ...props
 }) => {
-  const initials = name
-    ? name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : '?';
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [src]);
+
+  const safeName = (name || '').trim();
+  const safeSrc = typeof src === 'string' ? src.trim() : '';
+  const initials = useMemo(() => {
+    if (!safeName) return 'U';
+    const parts = safeName.split(/\s+/).filter(Boolean);
+    return parts
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }, [safeName]);
 
   const statusColors = {
     online: 'bg-green-500',
@@ -34,11 +43,14 @@ export const Avatar = ({
 
   return (
     <div className={`relative inline-block ${className}`} {...props}>
-      {src ? (
+      {safeSrc && !hasImageError ? (
         <img
-          src={src}
-          alt={alt || name}
+          src={safeSrc}
+          alt={alt || safeName || 'avatar'}
           className={`${sizes[size]} rounded-full object-cover ring-2 ring-border`}
+          onError={() => setHasImageError(true)}
+          loading="lazy"
+          referrerPolicy="no-referrer"
         />
       ) : (
         <div

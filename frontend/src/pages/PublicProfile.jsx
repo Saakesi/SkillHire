@@ -72,6 +72,28 @@ const TECH_ICONS = {
     r: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/r/r-original.svg",
 };
 
+const BADGE_DESCRIPTIONS = {
+    polyglot: "Works across multiple programming languages and adapts quickly.",
+    consistency: "Shows steady coding activity over time, not just short bursts.",
+    collaborator: "Frequently contributes in collaborative workflows like PRs and reviews.",
+    reviewer: "Actively reviews code and contributes useful review feedback.",
+    quality_focused: "Maintains strong project quality signals like tests, CI, and docs.",
+    open_source: "Has meaningful open-source style activity across repositories.",
+    trending: "Strong current momentum in coding output and profile signals.",
+    problem_solver: "Shows good problem-solving consistency, including LeetCode performance.",
+    edu_verified: "College email or institutional profile has been verified."
+};
+
+const formatBadgeLabel = (badge) =>
+    badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+const getBadgeDescription = (badge) => {
+    const key = badge.toLowerCase().replace(/\s+/g, "_");
+    if (BADGE_DESCRIPTIONS[key]) return BADGE_DESCRIPTIONS[key];
+    if (key.includes("verified")) return "Profile verification badge based on trusted identity signals.";
+    return "Awarded based on combined GitHub, project quality, and coding activity signals.";
+};
+
 // Normalize any skill/language name → TECH_ICONS key
 const SKILL_ICON_KEY = (name) => {
     const map = {
@@ -517,7 +539,7 @@ export default function PublicProfile() {
                                 </div>
                             </div>
 
-                            {lc && lc.solved?.total > 0 && (
+                            {lc && lc.solved?.total > 0 ? (
                                 <motion.div
                                     initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }} transition={{ duration: 0.35 }}
@@ -579,6 +601,24 @@ export default function PublicProfile() {
                                         </CardContent>
                                     </Card>
                                 </motion.div>
+                            ) : (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }} transition={{ duration: 0.35 }}
+                                >
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2 text-sm">
+                                                <Trophy className="w-4 h-4 text-yellow-500" /> LeetCode
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="text-sm text-muted-foreground">
+                                                This profile has not connected a LeetCode username yet.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
                             )}
 
                             {(metrics?.reviewsGiven > 0 || metrics?.approvals > 0) && (
@@ -625,9 +665,19 @@ export default function PublicProfile() {
                                         <CardContent>
                                             <div className="flex flex-wrap gap-2">
                                                 {badges.map((badge, i) => (
-                                                    <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary">
-                                                        {badge.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                                                    </span>
+                                                    <div key={i} className="relative group">
+                                                        <button
+                                                            type="button"
+                                                            title={getBadgeDescription(badge)}
+                                                            className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 text-primary cursor-help"
+                                                        >
+                                                            {formatBadgeLabel(badge)}
+                                                        </button>
+                                                        <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-56 -translate-x-1/2 rounded-lg border border-border bg-card p-2.5 text-xs text-muted-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                                                            <p className="font-medium text-foreground mb-1">{formatBadgeLabel(badge)}</p>
+                                                            <p>{getBadgeDescription(badge)}</p>
+                                                        </div>
+                                                    </div>
                                                 ))}
                                             </div>
                                         </CardContent>

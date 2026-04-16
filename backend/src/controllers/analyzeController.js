@@ -34,7 +34,7 @@ export const analyzeProfile = async (req, res) => {
   }
 
   const existing = await Analysis.findOne({ githubId: user.githubId })
-    .select("status updatedAt");
+    .select("status updatedAt leetcodeMetrics.username");
 
   if (existing && ["queued", "processing"].includes(existing.status)) {
     const retryAfterSeconds = 30;
@@ -46,7 +46,13 @@ export const analyzeProfile = async (req, res) => {
     });
   }
 
-  if (existing?.updatedAt) {
+  const currentLeetcodeUsername = (profile.leetcodeUsername || "").trim().toLowerCase();
+  const previousLeetcodeUsername = (existing?.leetcodeMetrics?.username || "").trim().toLowerCase();
+  const shouldBypassCooldownForLeetcodeUpdate =
+    Boolean(currentLeetcodeUsername) &&
+    currentLeetcodeUsername !== previousLeetcodeUsername;
+
+  if (existing?.updatedAt && !shouldBypassCooldownForLeetcodeUpdate) {
     const nextAllowedAt = new Date(existing.updatedAt).getTime() + (ANALYZE_COOLDOWN_SECONDS * 1000);
     const now = Date.now();
     if (now < nextAllowedAt) {

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 
@@ -25,7 +26,12 @@ export default function ReferralsTab({
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <h3 className="font-semibold text-sm">Pending Referral Requests</h3>
 
-          {loading && <p className="text-sm text-muted-foreground">Loading referrals...</p>}
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Loading referrals...</span>
+            </div>
+          )}
           {!loading && pending.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending referral requests.</p>
           )}
@@ -84,7 +90,12 @@ export default function ReferralsTab({
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <h3 className="font-semibold text-sm">Accepted Referrals</h3>
 
-          {loading && <p className="text-sm text-muted-foreground">Loading accepted referrals...</p>}
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Loading accepted referrals...</span>
+            </div>
+          )}
           {!loading && accepted.length === 0 && (
             <p className="text-sm text-muted-foreground">No accepted referrals yet.</p>
           )}

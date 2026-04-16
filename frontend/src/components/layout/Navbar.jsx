@@ -33,6 +33,15 @@ export const Navbar = () => {
     logout,
   } = useAuth();
 
+  const displayName =
+    profile?.name ||
+    profile?.username ||
+    user?.name ||
+    user?.username ||
+    "User";
+  const handleName = profile?.username || user?.username || displayName;
+  const avatarSrc = profile?.avatarUrl || user?.avatarUrl || "";
+
   // 🔗 Dynamic nav links
   const navLinks = isAuthenticated
     ? role === 'recruiter'
@@ -117,8 +126,8 @@ export const Navbar = () => {
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-accent transition-colors"
                 >
                   <Avatar
-                    src={profile?.avatarUrl}
-                    name={profile?.username}
+                    src={avatarSrc}
+                    name={displayName}
                     size="sm"
                   />
                 </button>
@@ -133,10 +142,10 @@ export const Navbar = () => {
                     >
                       <div className="px-4 py-3 border-b border-border">
                         <p className="font-semibold text-foreground">
-                          {profile?.username}
+                          {displayName}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          @{profile?.username}
+                          @{handleName}
                         </p>
                       </div>
 

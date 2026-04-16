@@ -23,13 +23,14 @@ export default function RecruiterDashboard() {
 
   const [tab, setTab] = useState("search");
   const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [shortlists, setShortlists] = useState([]);
-  const [shortlistsLoading, setShortlistsLoading] = useState(false);
-  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [shortlistsLoading, setShortlistsLoading] = useState(true);
+  const [connectionsLoading, setConnectionsLoading] = useState(true);
   const [pendingConnections, setPendingConnections] = useState([]);
   const [acceptedConnections, setAcceptedConnections] = useState([]);
   const [connectionActioningId, setConnectionActioningId] = useState("");
-  const [referralsLoading, setReferralsLoading] = useState(false);
+  const [referralsLoading, setReferralsLoading] = useState(true);
   const [pendingReferrals, setPendingReferrals] = useState([]);
   const [acceptedReferrals, setAcceptedReferrals] = useState([]);
   const [receivedReferrals, setReceivedReferrals] = useState([]);
@@ -46,9 +47,11 @@ export default function RecruiterDashboard() {
   // data fetching 
   useEffect(() => {
     if (!isAuthenticated) return;
+    setStatsLoading(true);
     axios.get(`${API}/api/recruiter/stats`, { withCredentials: true })
       .then(res => setStats(res.data))
-      .catch(() => { });
+      .catch(() => { })
+      .finally(() => setStatsLoading(false));
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -236,14 +239,20 @@ export default function RecruiterDashboard() {
 
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1">
         {/* Stats row */}
-        {stats && (
+        {statsLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl border border-border bg-card animate-pulse" />
+            ))}
+          </div>
+        ) : stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <StatCard icon={<Users className="w-4 h-4" />} label="Indexed Developers" value={stats.totalDevelopers.toLocaleString()} />
             <StatCard icon={<BarChart3 className="w-4 h-4" />} label="Avg Score" value={stats.avgScore} sub={`Max ${stats.maxScore}`} />
             <StatCard icon={<RefreshCw className="w-4 h-4" />} label="Active This Week" value={stats.recentlyAnalyzed} sub="re-analyzed" />
             <StatCard icon={<Bookmark className="w-4 h-4" />} label="Your Shortlists" value={stats.shortlistCount} />
           </div>
-        )}
+        ) : null}
 
         <AnimatePresence mode="wait">
           {tab === "search" && (

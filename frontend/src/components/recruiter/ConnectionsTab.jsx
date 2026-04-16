@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 
@@ -25,7 +26,12 @@ export default function ConnectionsTab({
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <h3 className="font-semibold text-sm">Incoming Connection Requests</h3>
 
-          {loading && <p className="text-sm text-muted-foreground">Loading requests...</p>}
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Loading requests...</span>
+            </div>
+          )}
           {!loading && pending.length === 0 && (
             <p className="text-sm text-muted-foreground">No pending connection requests.</p>
           )}
@@ -71,7 +77,12 @@ export default function ConnectionsTab({
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <h3 className="font-semibold text-sm">Accepted Connections</h3>
 
-          {loading && <p className="text-sm text-muted-foreground">Loading connections...</p>}
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Loading connections...</span>
+            </div>
+          )}
           {!loading && accepted.length === 0 && (
             <p className="text-sm text-muted-foreground">No accepted connections yet.</p>
           )}

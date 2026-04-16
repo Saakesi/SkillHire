@@ -14,7 +14,7 @@ export default function SearchTab({ shortlists, onAddToShortlist, onRemoveFromSh
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
-  const [searching, setSearching] = useState(false);
+  const [searching, setSearching] = useState(true);
 
   // filter state
   const [q, setQ] = useState("");
