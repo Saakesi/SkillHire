@@ -15,6 +15,7 @@ export const useInsights = (profile) => {
     let cancelled = false;
     setInsightsLoading(true);
     setInsightsError("");
+    setDeveloperInsights(null);
 
     insightService
       .getUserInsights(identifier)

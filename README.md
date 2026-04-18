@@ -101,6 +101,8 @@ SkillHire:
 - Smart search & ranking  
 - Shortlist pipelines  
 - Recruiter analytics dashboard  
+- JD-to-candidate matching from pasted text or uploaded JD files (PDF, DOCX, TXT, MD)
+- Structured JD extraction with AI + hardcoded technical token merge for robust parsing
 
 ---
 
@@ -120,6 +122,8 @@ SkillHire:
 - College verification workflow for students  
 - Socket.IO rooms for realtime messages  
 - Category-based ranking system  
+- AI-powered developer diagnosis insights with resilient parsing and fallback recovery
+- JD parser with malformed-output guards and deterministic matching layer
 
 ---
 
@@ -156,6 +160,24 @@ SkillHire:
 5. Score generated
 6. Stored in MongoDB
 7. Cached via Redis
+
+### 🔎 JD Matching Pipeline
+1. Recruiter submits JD as text and/or file (`/api/jd/match`)
+2. File extractor parses PDF/DOCX/TXT/MD (PDF has primary parser + fallback parser)
+3. JD parser runs AI extraction and validates structured terms
+4. Hardcoded technical term extraction runs in parallel and is merged with AI result
+5. Non-technical terms are filtered from extracted fields
+6. Candidate vectors are built from GitHub/LeetCode-derived analysis data
+7. Searchable JD terms are intersected with measurable candidate signals
+8. Match scoring + blended fit scoring ranks candidates
+
+### 🧠 Developer Insights Pipeline
+1. Completed analysis is converted into percentile-aware insight objects
+2. AI generates diagnosis rows (`category`, `observation`, `suggestion`)
+3. Output parser supports JSON and strict row formats with malformed-output guards
+4. Partial AI responses are recovered using strict text-row retry
+5. Weak suggestions are upgraded while preserving valid AI suggestions
+6. Deterministic fallback insights are used only for unresolved rows
 ---
 ## 🛠 Tech Stack
 ### 🎨 Frontend
@@ -259,8 +281,10 @@ VITE_FRONTEND_URL=http://localhost:5173
 | Auth      | GitHub OAuth + JWT       |
 | Profile   | Developer profiles       |
 | Analyze   | GitHub scoring           |
+| User Insights | AI developer diagnosis (`/api/user/:id/insights`) |
 | Ranking   | Leaderboards             |
 | Recruiter | Search + shortlist       |
+| JD Match  | Structured JD parsing + ranked candidate matching (`/api/jd/match`) |
 | Connections | Request, accept, decline, and remove connections |
 | Referrals  | Referral requests and approvals |
 | Messages   | Realtime 1:1 messaging and inbox |
@@ -274,6 +298,9 @@ VITE_FRONTEND_URL=http://localhost:5173
 - ❌ OAuth failing → Verify GitHub credentials  
 - ❌ Emails not sending → Check Gmail OAuth config  
 - ❌ Analysis stuck → Ensure worker + Redis running  
+- ❌ JD file parse fails → Check file type/size and PDF text extractability
+- ❌ JD terms look incomplete → Verify JD includes explicit technical terms (AI + hardcoded merge is deterministic)
+- ❌ Diagnosis looks repetitive/static → Check AI provider limits and backend logs for partial-response recovery/fallback
 
 ---
 

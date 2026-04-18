@@ -27,6 +27,7 @@ const stack = [
   { label: "Database", value: "MongoDB + Mongoose schemas" },
   { label: "Async Work", value: "BullMQ worker backed by Redis" },
   { label: "Signals", value: "GitHub repo/activity metrics + optional LeetCode data" },
+  { label: "AI Intelligence", value: "Groq-powered JD parsing and developer diagnosis formatting" },
   { label: "Realtime", value: "Socket.IO rooms keyed as user:{profileId}" },
 ];
 
@@ -248,6 +249,28 @@ const flows = [
     ],
   },
   {
+    title: "JD Parsing + Candidate Matching",
+    icon: <Search className="w-5 h-5 text-primary" />,
+    steps: [
+      "Recruiter submits pasted JD text and/or uploads a JD file to /api/jd/match",
+      "File extractor parses PDF/DOCX/TXT/MD; PDF path uses fallback parser when primary parser fails",
+      "JD parser extracts structured requirements using AI and merges deterministic hardcoded technical tokens",
+      "Matcher normalizes synonyms, expands technical concepts, and computes measurable overlap per candidate",
+      "Candidates are ranked by blended JD fit score and returned with matched/missing features",
+    ],
+  },
+  {
+    title: "Developer Diagnosis Insights",
+    icon: <Sparkles className="w-5 h-5 text-primary" />,
+    steps: [
+      "Insight engine derives percentile-aware diagnosis objects from completed analysis records",
+      "AI formatter requests strict JSON insights and validates category/observation/suggestion rows",
+      "Malformed JSON-like text is rejected to prevent frontend rendering artifacts",
+      "Partial responses are recovered via strict text-row retry before deterministic fallback is used",
+      "Frontend renders fresh insights after each fetch cycle through the diagnosis hook",
+    ],
+  },
+  {
     title: "Connections + Referrals",
     icon: <Users className="w-5 h-5 text-primary" />,
     steps: [
@@ -297,6 +320,14 @@ const apiModules = [
     endpoints: [
       "/api/profile/me, /api/profile/:username, /api/profile/update",
       "/api/analyze, /api/analyze/status/:username",
+      "/api/user/:id/insights (developer diagnosis payload)",
+    ],
+  },
+  {
+    title: "JD Intelligence",
+    endpoints: [
+      "/api/jd/match (JD text/file parsing + ranked candidate matching)",
+      "Accepts JD text and optional PDF/DOCX/TXT/MD upload",
     ],
   },
   {
@@ -323,6 +354,8 @@ const operationalNotes = [
   "Analysis requests are protected by both cooldown checks and a short Redis lock to prevent duplicate queue submissions.",
   "The worker is a separate Node process and must be running for analysis jobs to complete.",
   "MongoDB TTL indexes automatically clean up OTP and student-verification records after expiry.",
+  "JD parsing uses AI extraction plus deterministic token merge; cached AI parse is merged at runtime to reduce sparse responses.",
+  "Developer diagnosis formatter has malformed-output guards and row-level recovery to prevent broken cards in UI.",
 ];
 
 const engineeringRisks = [
@@ -338,6 +371,7 @@ const navSections = [
   { id: "domain-model", label: "Models", icon: Database },
   { id: "flows", label: "Flows", icon: Workflow },
   { id: "scoring", label: "Scoring", icon: Activity },
+  { id: "intelligence", label: "Intelligence", icon: Sparkles },
   { id: "apis", label: "APIs", icon: Boxes },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "ops", label: "Ops", icon: Bot },
@@ -1080,6 +1114,56 @@ export default function Engineering() {
                           </div>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </Section>
+
+              <Section
+                id="intelligence"
+                eyebrow="Intelligence"
+                title="JD parser and developer insights internals"
+                description="SkillHire includes two AI-assisted runtime pipelines: recruiter JD parsing/matching and developer diagnosis insight generation with robust fallbacks."
+              >
+                <div className="grid gap-5 xl:grid-cols-2">
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Search className="w-5 h-5 text-primary" />
+                        JD parser + matcher
+                      </CardTitle>
+                      <CardDescription>Used by recruiter flow for text/file JD matching.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList
+                        items={[
+                          "AI extracts skills/frameworks/languages/keywords from JD text.",
+                          "Hardcoded technical token parser runs in parallel and merges with AI parse.",
+                          "Non-technical terms are filtered before scoring.",
+                          "Matcher scores overlap across skills, frameworks, languages, and keywords with synonym expansion.",
+                          "Returned payload includes parsed JD, searchable scoring terms, matched/missing features, and final fit score.",
+                        ]}
+                      />
+                    </CardContent>
+                  </Card>
+                  <Card className="h-full">
+                    <CardHeader className="flex-col items-start gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        Developer diagnosis insights
+                      </CardTitle>
+                      <CardDescription>Used by developer dashboard diagnosis section.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <BulletList
+                        items={[
+                          "Insight engine builds percentile-aware metric objects per user.",
+                          "AI formatter enforces strict category/observation/suggestion output contract.",
+                          "Malformed JSON-like output is rejected to avoid broken UI rendering.",
+                          "Partial responses are recovered with strict text-row retry.",
+                          "Fallback insights are applied only for unresolved rows, preserving valid AI suggestions.",
+                        ]}
+                      />
                     </CardContent>
                   </Card>
                 </div>
