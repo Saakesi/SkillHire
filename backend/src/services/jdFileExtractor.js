@@ -1,8 +1,5 @@
 import mammoth from "mammoth";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import { PDFParse } from "pdf-parse";
 
 const normalizeWhitespace = (text = "") =>
   String(text)
@@ -21,8 +18,14 @@ export const extractTextFromJdFile = async (file) => {
   const mime = String(file.mimetype || "").toLowerCase();
 
   if (mime === "application/pdf" || hasExt(name, ".pdf")) {
-    const parsed = await pdfParse(file.buffer);
-    return normalizeWhitespace(parsed?.text || "");
+    const parser = new PDFParse({ data: file.buffer });
+
+    try {
+      const parsed = await parser.getText();
+      return normalizeWhitespace(parsed?.text || "");
+    } finally {
+      await parser.destroy();
+    }
   }
 
   if (
