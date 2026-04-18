@@ -278,6 +278,7 @@ export default function PublicProfile() {
     const avatarUrl = profile?.avatarUrl;
     const bio = profile?.bio;
     const updatedAt = data?.updatedAt;
+    const leetcodeUsername = profile?.leetcodeUsername || lc?.username || "";
 
     return (
         <Layout showFooter={false}>
@@ -317,6 +318,16 @@ export default function PublicProfile() {
                                 >
                                     @{username} <ExternalLink className="w-3 h-3" />
                                 </a>
+                                {!!leetcodeUsername && (
+                                    <a
+                                        href={`https://leetcode.com/u/${leetcodeUsername}/`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mt-1 w-fit"
+                                    >
+                                        LeetCode: @{leetcodeUsername} <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                )}
                                 {isRecruiterProfile ? (
                                     <div className="mt-2 space-y-1.5">
                                         {profile?.company && (

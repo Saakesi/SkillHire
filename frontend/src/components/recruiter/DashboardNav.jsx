@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search, Bookmark, Settings, Github, LogOut, UserCheck, Share2, MessageSquare } from "lucide-react";
+import { Search, Bookmark, Settings, Github, LogOut, UserCheck, Share2, MessageSquare, FileText } from "lucide-react";
 import { Avatar } from "../ui/Avatar";
 
 const TABS = [
@@ -7,6 +7,7 @@ const TABS = [
   { id: "connections", icon: <UserCheck className="w-3.5 h-3.5" />, label: "Connections" },
   { id: "referrals", icon: <Share2 className="w-3.5 h-3.5" />, label: "Referrals" },
   { id: "messages", icon: <MessageSquare className="w-3.5 h-3.5" />, label: "Messages" },
+  { id: "jd-match", icon: <FileText className="w-3.5 h-3.5" />, label: "JD Match" },
   { id: "shortlists", icon: <Bookmark className="w-3.5 h-3.5" />, label: "Shortlists" },
   { id: "settings", icon: <Settings className="w-3.5 h-3.5" />, label: "Settings" },
 ];

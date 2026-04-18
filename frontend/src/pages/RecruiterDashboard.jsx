@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import DashboardNav from "../components/recruiter/DashboardNav";
 import StatCard from "../components/recruiter/StatCard";
 import SearchTab from "../components/recruiter/SearchTab";
+import JdMatchTab from "../components/recruiter/JdMatchTab";
 import ConnectionsTab from "../components/recruiter/ConnectionsTab";
 import ReferralsTab from "../components/recruiter/ReferralsTab";
 import ShortlistsTab from "../components/recruiter/ShortlistsTab";
@@ -289,6 +290,9 @@ export default function RecruiterDashboard() {
           )}
           {tab === "messages" && (
             <Messages key="messages" embedded initialUsername={messageTargetUsername} />
+          )}
+          {tab === "jd-match" && (
+            <JdMatchTab key="jd-match" />
           )}
           {tab === "shortlists" && (
             <ShortlistsTab
