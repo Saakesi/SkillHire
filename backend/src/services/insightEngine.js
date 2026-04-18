@@ -1,6 +1,6 @@
 import Analysis from "../models/Analysis.js";
 import { cacheGet, cacheSet } from "./cache/cacheService.js";
-import { formatInsightsWithGemini } from "./insightFormatterGemini.js";
+import { formatInsightsWithAI } from "./insightFormatterAI.js";
 
 const STATS_CACHE_KEY = "insights:dataset-stats:v1";
 const STATS_TTL_SECONDS = 60 * 10;
@@ -196,7 +196,7 @@ export const generateDeveloperInsights = async (analysis) => {
     }
   }
 
-  const insights = await formatInsightsWithGemini(selected);
+  const insights = await formatInsightsWithAI(selected);
 
   return {
     insightObjects: selected,

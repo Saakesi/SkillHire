@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { insightService } from "../../../services/insightService";
 
-export const useInsights = (profile, analysisRawMetrics) => {
+export const useInsights = (profile) => {
   const [developerInsights, setDeveloperInsights] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsError, setInsightsError] = useState("");
 
   useEffect(() => {
-    if (!profile || !analysisRawMetrics) return;
+    if (!profile) return;
 
     const identifier = profile.githubId || profile._id || profile.username;
     if (!identifier) return;
@@ -34,7 +34,7 @@ export const useInsights = (profile, analysisRawMetrics) => {
     return () => {
       cancelled = true;
     };
-  }, [profile, analysisRawMetrics]);
+  }, [profile]);
 
   return {
     developerInsights,

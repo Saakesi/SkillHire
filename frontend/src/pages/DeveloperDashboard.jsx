@@ -76,7 +76,7 @@ export const DeveloperDashboard = () => {
     acceptConnection,
     declineConnection
   } = useConnections(isAuthenticated);
-  const { developerInsights, insightsLoading, insightsError } = useInsights(profile, analysis?.rawMetrics);
+  const { developerInsights, insightsLoading, insightsError } = useInsights(profile);
 
   const [copied, setCopied] = useState(false);
 

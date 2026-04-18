@@ -1,5 +1,5 @@
 import Analysis from "../models/Analysis.js";
-import { parseJDWithGemini } from "./jdParserGemini.js";
+import { parseJDWithAI } from "./jdParserAI.js";
 
 const normalizeTerm = (value) => {
   const raw = String(value || "").trim().toLowerCase();
@@ -10,6 +10,12 @@ const normalizeTerm = (value) => {
   if (compact === "js") return "javascript";
   if (compact === "ts") return "typescript";
   if (compact === "py") return "python";
+  if (compact === "node") return "node.js";
+  if (compact === "nodejs") return "node.js";
+  if (compact === "vue" || compact === "vue js") return "vue.js";
+  if (compact === "angularjs") return "angular";
+  if (compact === "html5") return "html";
+  if (compact === "css3") return "css";
   if (
     compact === "mysql" ||
     compact === "postgres" ||
@@ -35,6 +41,11 @@ const normalizeTerm = (value) => {
 };
 
 const TERM_EXPANSIONS = {
+  "web development": [
+    "html",
+    "css",
+    "javascript"
+  ],
   "data structures": [
     "array",
     "string",
@@ -70,8 +81,14 @@ const TERM_EXPANSIONS = {
     "math"
   ],
   "object-oriented design": ["design"],
-  "relational database concepts": ["sql", "database"]
+  "relational database concepts": ["sql", "database"],
+  "automated testing": ["testing", "test"],
+  "testing infrastructure": ["testing", "test"],
+  "real-time monitoring": ["monitoring"],
+  "cloud services": ["cloud", "aws"]
 };
+
+const clampScore = (value) => Math.max(0, Math.min(100, Number(value) || 0));
 
 const expandedCandidatesForTerm = (term) => {
   const normalized = normalizeTerm(term);
@@ -258,7 +275,8 @@ const getObservableUniverse = (candidateVectors) => {
 };
 
 export const matchCandidatesForJD = async (jdText, { limit = 100 } = {}) => {
-  const parsedJD = await parseJDWithGemini(jdText);
+  const parsedJD = await parseJDWithAI(jdText);
+  console.log("AI parsed JD:", JSON.stringify(parsedJD, null, 2));
   const jdVector = buildJdVector(parsedJD);
 
   const analyses = await Analysis.find({ status: "completed" })
@@ -285,6 +303,8 @@ export const matchCandidatesForJD = async (jdText, { limit = 100 } = {}) => {
     keywords: setToSortedArray(jdKeywordSet)
   };
 
+  console.log("JD matcher searchable JD:", JSON.stringify(searchableJD, null, 2));
+
   const searchableJdVector = buildJdVector(searchableJD);
 
   const scored = enriched.map(({ analysis, candidateVector }) => {
@@ -304,6 +324,10 @@ export const matchCandidatesForJD = async (jdText, { limit = 100 } = {}) => {
 
     return { analysis, candidateVector, components };
   });
+
+  const overallScores = scored
+    .map((item) => Number(item.analysis.overallScore || 0))
+    .sort((a, b) => a - b);
 
   const activeComponents = [
     { key: "skills", active: jdSkillSet.size > 0 },
@@ -341,49 +365,54 @@ export const matchCandidatesForJD = async (jdText, { limit = 100 } = {}) => {
       ? matchedFeatures.length / totalRequirements
       : 1;
 
-    // Display score should reflect requirement coverage directly.
-    // If nothing is missing, this becomes 100.
     const coverageScore = Math.pow(requirementCoverage, 0.7) * 100;
+    const languageFitScore = item.components.languages * 100;
+    const frameworkFitScore = item.components.frameworks * 100;
+    const overallFitScore = percentileRank(overallScores, Number(item.analysis.overallScore || 0)) * 100;
+    const missingPenalty = Math.min(18, missingFeatures.length * 2.5);
+
+    // Blend JD coverage with broader developer strength so the ranking reflects fit, not just raw overall score.
+    const blendedScore =
+      (0.52 * coverageScore) +
+      (0.18 * languageFitScore) +
+      (0.10 * frameworkFitScore) +
+      (0.15 * overallFitScore) +
+      (0.05 * (meanNormalized * 100)) -
+      missingPenalty;
+    const fitScore = clampScore(blendedScore);
 
     return {
       userId: item.analysis.githubId,
       username: item.analysis.username,
       leetcodeUsername: item.analysis.leetcodeMetrics?.username || null,
       matchScore: Number(coverageScore.toFixed(2)),
+      fitScore: Number(fitScore.toFixed(2)),
       matchedFeatures,
       missingFeatures,
       _qualityTiebreaker: Number((meanNormalized * 100).toFixed(4)),
-      _tiebreaker: Number(item.analysis.overallScore || 0)
+      _tiebreaker: Number(item.analysis.overallScore || 0),
+      _overallFitScore: Number(overallFitScore.toFixed(4))
     };
   });
 
-  ranked.forEach((c) => {
-
-    c.finalScore =
-      0.65 * c.matchScore +
-      0.25 * c._qualityTiebreaker +
-      0.10 * c._tiebreaker;
-
-    if (c.matchScore > 85) {
-      c.finalScore += 0.15 * c._tiebreaker;
-    }
-
+  ranked.forEach((candidate) => {
+    candidate.finalScore = Number(candidate.fitScore.toFixed(4));
   });
 
-  ranked.sort((a, b) => b.finalScore - a.finalScore);
-
-  // ranked.sort((a, b) => {
-  //   if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
-  //   if (b._qualityTiebreaker !== a._qualityTiebreaker) return b._qualityTiebreaker - a._qualityTiebreaker;
-  //   return b._tiebreaker - a._tiebreaker;
-  // });
+  ranked.sort((a, b) => {
+    if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
+    if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+    if (b._tiebreaker !== a._tiebreaker) return b._tiebreaker - a._tiebreaker;
+    if (b._qualityTiebreaker !== a._qualityTiebreaker) return b._qualityTiebreaker - a._qualityTiebreaker;
+    return 0;
+  });
 
   return {
     parsedJD,
     searchableJD,
     results: ranked
       .slice(0, Math.max(1, Number(limit) || 100))
-      .map(({ _qualityTiebreaker, _tiebreaker, finalScore, ...rest }) => ({
+      .map(({ _qualityTiebreaker, _tiebreaker, _overallFitScore, fitScore, finalScore, ...rest }) => ({
         ...rest,
         finalScore: Number(finalScore.toFixed(2))
       }))

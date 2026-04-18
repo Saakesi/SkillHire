@@ -31,12 +31,22 @@ export const matchCandidatesByJD = async (req, res) => {
     if (req.file) {
       try {
         fileJdText = await extractTextFromJdFile(req.file);
+        console.log("JD controller file extracted text length:", fileJdText.length);
+        console.log("JD controller file extracted text preview:", fileJdText.slice(0, 1200));
       } catch (err) {
+        console.error("JD controller file extract error:", err);
         return res.status(400).json({ error: err.message || "Invalid JD file" });
       }
     }
 
+    if (typedJdText) {
+      console.log("JD controller typed text length:", typedJdText.length);
+      console.log("JD controller typed text preview:", typedJdText.slice(0, 1200));
+    }
+
     const jdText = [typedJdText, fileJdText].filter(Boolean).join("\n\n").trim();
+    console.log("JD controller combined text length:", jdText.length);
+    console.log("JD controller combined text preview:", jdText.slice(0, 2000));
 
     if (!jdText) {
       return res.status(400).json({ error: "Provide JD text or upload a JD file." });

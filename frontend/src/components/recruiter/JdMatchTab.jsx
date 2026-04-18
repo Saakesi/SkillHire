@@ -262,7 +262,7 @@ export default function JdMatchTab() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h3 className="font-semibold text-base">Ranked Candidates</h3>
-            <p className="text-sm text-muted-foreground">Sorted by match score, then overall score as a tiebreaker.</p>
+            <p className="text-sm text-muted-foreground">Sorted by blended JD fit, with overall strength used as part of the ranking.</p>
           </div>
           <span className="text-sm text-muted-foreground">
             {matches.length} result{matches.length === 1 ? "" : "s"}
@@ -291,7 +291,7 @@ export default function JdMatchTab() {
                     </div>
                   </div>
                   <span className="rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-sm font-bold text-primary">
-                    {candidate.finalScore?.toFixed(2)}
+                    {candidate.finalScore?.toFixed(2)}%
                   </span>
                 </div>
 
