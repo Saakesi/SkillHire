@@ -11,7 +11,9 @@ if (!REDIS_URL) {
 
 console.log("redis url: ", REDIS_URL);
 // Redis connection
-export const connection = new IORedis(REDIS_URL);
+export const connection = new IORedis(REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
 
 // Logs
 connection.on("connect", () => {

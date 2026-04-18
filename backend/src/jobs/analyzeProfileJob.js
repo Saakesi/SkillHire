@@ -15,4 +15,10 @@ const connection = new IORedis(REDIS_URL, {
 	db: 0,
 });
 
-export const analyzeProfileQueue = new Queue("analyzeProfile", { connection });
+export const analyzeProfileQueue = new Queue("analyzeProfile", {
+	connection,
+	defaultJobOptions: {
+		removeOnComplete: 50,
+		removeOnFail: 20,
+	},
+});
