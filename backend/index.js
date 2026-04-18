@@ -17,6 +17,8 @@ import studentCollegeVerifyRouter from "./src/routes/studentCollegeVerify.js";
 import connectionRouter from "./src/routes/connectionRoutes.js";
 import referralRoutes from "./src/routes/referralRoutes.js";
 import messageRoutes from "./src/routes/messageRoutes.js";
+import jdRoutes from "./src/routes/jdRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
 
 
 console.log("BACKEND STARTED FROM:", process.cwd());
@@ -137,6 +139,8 @@ app.use("/api/student/college-verify", studentCollegeVerifyRouter);
 app.use("/api/connections", connectionRouter);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/jd", jdRoutes);
+app.use("/api/user", userRoutes);
 console.log("Router imported");
 
 app.get('/', (req, res) => {

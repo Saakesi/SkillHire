@@ -9,6 +9,7 @@
     "worker": "node src/workers/analyzeWorker.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@octokit/plugin-throttling": "^11.0.3",
     "@octokit/rest": "^22.0.1",
     "axios": "^1.13.2",
@@ -21,9 +22,12 @@
     "googleapis": "^171.4.0",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.12.0",
     "mongoose": "^9.1.5",
+    "multer": "^2.1.1",
     "nodemailer": "^8.0.5",
     "p-map": "^7.0.4",
+    "pdf-parse": "^2.4.5",
     "redis": "^5.10.0",
     "socket.io": "^4.8.1"
   },
